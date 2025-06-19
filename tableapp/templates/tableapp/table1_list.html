@@ -1,0 +1,38 @@
+{% extends 'tableapp/base.html' %}
+{% block title %}Table 1{% endblock %}
+{% block content %}
+<h2>Table 1 Records</h2>
+
+{% if perms %}
+    {% if perms.can_write %}
+        <a class="btn btn-success mb-3" href="{% url 'table1_create' %}">Create New</a>
+    {% endif %}
+{% endif %}
+
+<table class="table table-bordered">
+    <thead>
+        <tr>
+            <th>Col1</th>
+            <th>Col2</th>
+            <th>Col3</th>
+            <th>Col4</th>
+            {% if perms.can_delete %}
+            <th>Actions</th>
+            {% endif %}
+        </tr>
+    </thead>
+    <tbody>
+    {% for item in data %}
+        <tr>
+            <td>{{ item.col1 }}</td>
+            <td>{{ item.col2 }}</td>
+            <td>{{ item.col3 }}</td>
+            <td>{{ item.col4 }}</td>
+            {% if perms.can_delete %}
+            <td><a href="{% url 'table1_delete' item.pk %}" class="btn btn-sm btn-danger">Delete</a></td>
+            {% endif %}
+        </tr>
+    {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

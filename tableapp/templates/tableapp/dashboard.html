@@ -1,0 +1,8 @@
+{% extends 'tableapp/base.html' %}
+{% block content %}
+<h2>Welcome, {{ user.username }}!</h2>
+<p>Choose a table to manage:</p>
+<ul>
+    <li><a href="{% url 'table1_list' %}">Manage Table 1</a></li>
+</ul>
+{% endblock %}
