@@ -72,3 +72,6 @@ def table2_delete(request, pk):
     obj = get_object_or_404(Table2, pk=pk)
     obj.delete()
     return redirect('table2_list')
+
+
+
