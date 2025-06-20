@@ -32,7 +32,8 @@ def table1_create(request):
             return redirect('table1_list')
     else:
         form = Table1Form()
-    return render(request, 'tableapp/form.html', {'form': form})
+    return render(request, 'tableapp/form.html', {'form': form, 'cancel_url': 'table1_list'})  # Para que el boton cancel redirija a la tabla correcta en este caso table 1
+
 
 @login_required
 def table1_delete(request, pk):
@@ -43,3 +44,31 @@ def table1_delete(request, pk):
     return redirect('table1_list')
 
 # Similar views for table2...
+@login_required
+def table2_list(request):
+    if not check_perm(request.user, 'table2', 'read'):
+        return render(request, 'tableapp/no_permission.html')
+    data = Table2.objects.all()
+    return render(request, 'tableapp/table2_list.html', {'data': data})
+
+@login_required
+def table2_create(request):
+    if not check_perm(request.user, 'table2', 'write'):
+        return render(request, 'tableapp/no_permission.html')
+    if request.method == 'POST':
+        form = Table2Form(request.POST)
+        if form.is_valid():
+            form.save()
+            return redirect('table2_list')
+    else:
+        form = Table2Form()
+    return render(request, 'tableapp/form.html', {'form': form, 'cancel_url': 'table2_list'})  # y pues lo mismo para table2
+
+
+@login_required
+def table2_delete(request, pk):
+    if not check_perm(request.user, 'table2', 'delete'):
+        return render(request, 'tableapp/no_permission.html')
+    obj = get_object_or_404(Table2, pk=pk)
+    obj.delete()
+    return redirect('table2_list')
