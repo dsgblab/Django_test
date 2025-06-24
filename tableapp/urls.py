@@ -1,6 +1,7 @@
 from django.urls import path
 from . import views
 from .views import dashboard
+from .views import query_result_view
 
 
 urlpatterns = [
@@ -14,4 +15,9 @@ urlpatterns = [
     path('table2/delete/<int:pk>/', views.table2_delete, name='table2_delete'),
 
     
+]
+
+
+urlpatterns += [
+    path('query/', query_result_view, name='query_result'),
 ]

@@ -88,6 +88,16 @@ DATABASES = {
             'trusted_connection': 'yes',
             'trust_server_certificate': True,
         },
+    },
+    'ssf_genericos': {
+        'ENGINE': 'mssql',
+        'NAME': 'ssf_genericos',
+        'HOST': 'EQ065',
+        'OPTIONS': {
+            'driver': 'ODBC Driver 17 for SQL Server',
+            'trusted_connection': 'yes',
+            'trust_server_certificate': True,
+        },
     }
 }
 

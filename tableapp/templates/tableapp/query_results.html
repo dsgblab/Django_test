@@ -1,0 +1,24 @@
+{% extends 'tableapp/base.html' %}
+{% block title %}Resultados Query{% endblock %}
+{% block content %}
+<h2>Resultados de la Consulta SQL</h2>
+
+<table class="table table-bordered table-striped table-hover">
+    <thead>
+        <tr>
+            {% for col in columns %}
+                <th>{{ col }}</th>
+            {% endfor %}
+        </tr>
+    </thead>
+    <tbody>
+        {% for row in rows %}
+            <tr>
+                {% for cell in row %}
+                    <td>{{ cell }}</td>
+                {% endfor %}
+            </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}
