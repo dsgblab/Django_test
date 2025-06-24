@@ -19,3 +19,5 @@ try:
             print("Conexión OK, pero no devolvió resultados")
 except Exception as e:
     print("Error al conectar:", e)
+
+
