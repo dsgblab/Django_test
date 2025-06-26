@@ -1,5 +1,6 @@
 asgiref==3.8.1
 Django==5.0.14
+django-htmx==1.23.1
 mssql-django==1.5
 pyodbc==5.2.0
 pytz==2025.2
