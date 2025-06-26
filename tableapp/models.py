@@ -23,6 +23,7 @@ class TablePermission(models.Model):
     TABLE_CHOICES = (
         ('table1', 'Table 1'),
         ('table2', 'Table 2'),
+        ('report', 'Report'),  
     )
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     table = models.CharField(choices=TABLE_CHOICES, max_length=10)
@@ -32,3 +33,4 @@ class TablePermission(models.Model):
 
     class Meta:
         unique_together = ('user', 'table')
+

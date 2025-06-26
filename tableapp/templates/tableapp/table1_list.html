@@ -5,7 +5,15 @@
 
 {% if perms %}
     {% if perms.can_write %}
-        <a class="btn btn-success mb-3" href="{% url 'table1_create' %}">Create New</a>
+        <button 
+            class="btn btn-success mb-3"
+            hx-get="{% url 'table1_create' %}" 
+            hx-target="#modal-content"
+            hx-swap="innerHTML" 
+        >
+            Create New
+        </button>
+
     {% endif %}
 {% endif %}
 

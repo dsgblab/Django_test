@@ -1,11 +1,31 @@
 {% extends 'tableapp/base.html' %}
-{% block title %}Create / Edit{% endblock %}
+
 {% block content %}
-<h2>Create or Edit Entry</h2>
-<form method="post">
+<form 
+  method="post"
+  {% if request.htmx %}
+    hx-post="{% url request.resolver_match.url_name %}" 
+    hx-target="#modal-content" 
+    hx-swap="innerHTML"
+  {% endif %}
+>
     {% csrf_token %}
     {{ form.as_p }}
-    <button class="btn btn-primary" type="submit">Save</button>
-    <a href="{% url cancel_url %}" class="btn btn-secondary ms-2">Cancel</a>
+
+    <div class="mt-3 text-left">
+        <button class="btn btn-primary" type="submit">
+             Guardar
+        </button>
+
+        {% if request.htmx %}
+            <button type="button" class="btn btn-secondary ml-2" data-dismiss="modal">
+                 Cancelar
+            </button>
+        {% else %}
+            <a href="{% url cancel_url %}" class="btn btn-secondary ml-2">
+                 Cancelar
+            </a>
+        {% endif %}
+    </div>
 </form>
 {% endblock %}

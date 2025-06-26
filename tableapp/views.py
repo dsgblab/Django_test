@@ -3,6 +3,7 @@ from .models import Table1, Table2, TablePermission
 from .forms import Table1Form, Table2Form
 from django.contrib.auth.decorators import login_required
 from django.db import connections
+from django.http import HttpResponse
 
 def check_perm(user, table, perm):
     try:
@@ -11,30 +12,49 @@ def check_perm(user, table, perm):
     except TablePermission.DoesNotExist:
         return False
 
+def get_perm_dict(user, table):
+    return {
+        'can_write': check_perm(user, table, 'write'),
+        'can_delete': check_perm(user, table, 'delete'),
+        'can_read': check_perm(user, table, 'read'),
+    }
+
 @login_required
 def dashboard(request):
-    return render(request, 'tableapp/dashboard.html')
+    perms = {
+        'report': check_perm(request.user, 'report', 'read'),
+        'can_read_table1': check_perm(request.user, 'table1', 'read'),
+        'can_read_table2': check_perm(request.user, 'table2', 'read'),
+    }
+
+    return render(request, 'tableapp/dashboard.html', {
+        'perms': perms
+    })
+
+
 
 @login_required
 def table1_list(request):
     if not check_perm(request.user, 'table1', 'read'):
         return render(request, 'tableapp/no_permission.html')
     data = Table1.objects.all()
-    return render(request, 'tableapp/table1_list.html', {'data': data})
+    perms = get_perm_dict(request.user, 'table1')
+    return render(request, 'tableapp/table1_list.html', {'data': data, 'perms': perms})
 
 @login_required
 def table1_create(request):
     if not check_perm(request.user, 'table1', 'write'):
         return render(request, 'tableapp/no_permission.html')
-    if request.method == 'POST':
-        form = Table1Form(request.POST)
-        if form.is_valid():
-            form.save()
-            return redirect('table1_list')
-    else:
-        form = Table1Form()
-    return render(request, 'tableapp/form.html', {'form': form, 'cancel_url': 'table1_list'})  # Para que el boton cancel redirija a la tabla correcta en este caso table 1
 
+    form = Table1Form(request.POST or None)
+    if request.method == 'POST' and form.is_valid():
+        form.save()
+        if request.htmx:
+            return HttpResponse(status=204)  
+        return redirect('table1_list')
+
+    perms = get_perm_dict(request.user, 'table1')
+    return render(request, 'tableapp/form.html', {'form': form, 'cancel_url': 'table1_list', 'perms': perms})
 
 @login_required
 def table1_delete(request, pk):
@@ -44,27 +64,28 @@ def table1_delete(request, pk):
     obj.delete()
     return redirect('table1_list')
 
-# Similar views for table2...
 @login_required
 def table2_list(request):
     if not check_perm(request.user, 'table2', 'read'):
         return render(request, 'tableapp/no_permission.html')
     data = Table2.objects.all()
-    return render(request, 'tableapp/table2_list.html', {'data': data})
+    perms = get_perm_dict(request.user, 'table2')
+    return render(request, 'tableapp/table2_list.html', {'data': data, 'perms': perms})
 
 @login_required
 def table2_create(request):
     if not check_perm(request.user, 'table2', 'write'):
         return render(request, 'tableapp/no_permission.html')
-    if request.method == 'POST':
-        form = Table2Form(request.POST)
-        if form.is_valid():
-            form.save()
-            return redirect('table2_list')
-    else:
-        form = Table2Form()
-    return render(request, 'tableapp/form.html', {'form': form, 'cancel_url': 'table2_list'})  # y pues lo mismo para table2
 
+    form = Table2Form(request.POST or None)
+    if request.method == 'POST' and form.is_valid():
+        form.save()
+        if request.htmx:
+            return HttpResponse(status=204)
+        return redirect('table2_list')
+
+    perms = get_perm_dict(request.user, 'table2')
+    return render(request, 'tableapp/form.html', {'form': form, 'cancel_url': 'table2_list', 'perms': perms})
 
 @login_required
 def table2_delete(request, pk):
@@ -74,12 +95,12 @@ def table2_delete(request, pk):
     obj.delete()
     return redirect('table2_list')
 
-
 @login_required
 def query_result_view(request):
+    if not check_perm(request.user, 'report', 'read'):
+        return render(request, 'tableapp/no_permission.html')
     with connections['ssf_genericos'].cursor() as cursor:
         cursor.execute("""
-            -- AQUÍ pega la query completa que compartiste, sin cortar
             SELECT
               in_pedidencab.peeconsecutivo AS Pedido,
               in_pediddetal.pedsecuencia AS [Secuencia Pedido],
@@ -150,5 +171,3 @@ def query_result_view(request):
         'columns': columns,
         'rows': rows
     })
-
-
