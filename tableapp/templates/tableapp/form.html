@@ -4,7 +4,7 @@
 <form 
   method="post"
   {% if request.htmx %}
-    hx-post="{% url request.resolver_match.url_name %}" 
+    hx-post="{% url request.resolver_match.url_name object.pk %}"  
     hx-target="#modal-content" 
     hx-swap="innerHTML"
   {% endif %}

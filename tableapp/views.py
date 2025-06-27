@@ -17,6 +17,7 @@ def get_perm_dict(user, table):
         'can_write': check_perm(user, table, 'write'),
         'can_delete': check_perm(user, table, 'delete'),
         'can_read': check_perm(user, table, 'read'),
+        'can_edit': check_perm(user, table, 'edit'),
     }
 
 @login_required
@@ -65,6 +66,29 @@ def table1_delete(request, pk):
     return redirect('table1_list')
 
 @login_required
+def table1_edit(request, pk):
+    if not check_perm(request.user, 'table1', 'edit'):
+        return render(request, 'tableapp/no_permission.html')
+
+    obj = get_object_or_404(Table1, pk=pk)
+    form = Table1Form(request.POST or None, instance=obj)
+    if request.method == 'POST' and form.is_valid():
+        form.save()
+        if request.htmx:
+            return HttpResponse(status=204)
+        return redirect('table1_list')
+
+    perms = get_perm_dict(request.user, 'table1')
+    return render(request, 'tableapp/form.html', {
+        'form': form,
+        'cancel_url': 'table1_list',
+        'perms': perms,
+        'object': obj  # ✅ Solo aquí
+    })
+
+
+
+@login_required
 def table2_list(request):
     if not check_perm(request.user, 'table2', 'read'):
         return render(request, 'tableapp/no_permission.html')
@@ -94,6 +118,29 @@ def table2_delete(request, pk):
     obj = get_object_or_404(Table2, pk=pk)
     obj.delete()
     return redirect('table2_list')
+
+@login_required
+def table2_edit(request, pk):
+    if not check_perm(request.user, 'table2', 'edit'):
+        return render(request, 'tableapp/no_permission.html')
+
+    obj = get_object_or_404(Table2, pk=pk)
+    form = Table2Form(request.POST or None, instance=obj)
+    if request.method == 'POST' and form.is_valid():
+        form.save()
+        if request.htmx:
+            return HttpResponse(status=204)
+        return redirect('table2_list')
+
+    perms = get_perm_dict(request.user, 'table2')
+    return render(request, 'tableapp/form.html', {
+        'form': form,
+        'cancel_url': 'table2_list',
+        'perms': perms,
+        'object': obj  # ✅ Solo aquí también
+    })
+
+
 
 @login_required
 def query_result_view(request):

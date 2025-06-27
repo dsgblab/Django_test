@@ -30,7 +30,11 @@ class TablePermission(models.Model):
     can_read = models.BooleanField(default=False)
     can_write = models.BooleanField(default=False)
     can_delete = models.BooleanField(default=False)
+    can_edit = models.BooleanField(default=False)
 
     class Meta:
         unique_together = ('user', 'table')
 
+    
+    def __str__(self):
+        return f"{self.user.username} - {self.table}"
