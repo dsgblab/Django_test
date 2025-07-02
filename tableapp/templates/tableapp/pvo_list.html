@@ -1,0 +1,54 @@
+{% extends 'tableapp/base.html' %}
+
+{% block content %}
+<h2>PVO Registro</h2>
+
+<div class="mb-3">
+  <button class="btn btn-primary" 
+          hx-get="{% url 'pvo_create' %}" 
+          hx-target="#modal-content" 
+          hx-trigger="click"
+          _="on htmx:afterOnLoad wait 10ms then add .show to #htmxModal">
+    Crear nuevo registro
+  </button>
+</div>
+
+<table class="table table-striped">
+  <thead>
+    <tr>
+      <th>ID</th>
+      <th>PID</th>  <!-- AÑADIDO: PID -->
+      <th>FULL</th>
+      <th>FLP</th>
+      <th>FEF</th>
+      <th>Creado por</th>
+      <th>Fecha creación</th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for r in registros %}
+    <tr>
+      <td>{{ r.id }}</td>
+      <td>{{ r.pid }}</td>  <!-- AÑADIDO: PID -->
+      <td>{{ r.fecha_full }}</td>
+      <td>{{ r.fecha_flp }}</td>
+      <td>{{ r.fecha_fef }}</td>
+      <td>{{ r.creado_por.username }}</td>
+      <td>{{ r.fecha_creacion|date:"Y-m-d H:i" }}</td>
+      <td>
+        <button class="btn btn-sm btn-secondary"
+                hx-get="{% url 'pvo_edit' r.id %}" 
+                hx-target="#modal-content"
+                hx-trigger="click"
+                _="on htmx:afterOnLoad wait 10ms then add .show to #htmxModal">
+          Editar
+        </button>
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+{% include 'tableapp/modal.html' %}
+{% endblock %}

@@ -23,7 +23,7 @@ class TablePermission(models.Model):
     TABLE_CHOICES = (
         ('table1', 'Table 1'),
         ('table2', 'Table 2'),
-        ('report', 'Report'),  
+        ('report', 'Report'),
     )
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     table = models.CharField(choices=TABLE_CHOICES, max_length=10)
@@ -35,6 +35,37 @@ class TablePermission(models.Model):
     class Meta:
         unique_together = ('user', 'table')
 
-    
     def __str__(self):
         return f"{self.user.username} - {self.table}"
+
+class PvoRegistro(models.Model):
+    
+    pid = models.CharField(max_length=20, unique=True)
+
+    # Fechas
+    fecha_full = models.DateField(null=True, blank=True)
+    fecha_flp = models.DateTimeField(null=True, blank=True)
+    fecha_fef = models.DateTimeField(null=True, blank=True)
+
+    # Auditoría
+    creado_por = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
+    fecha_creacion = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        managed = True
+        db_table = 'tableapp_pvoregistro'
+
+    def __str__(self):
+        return self.pid
+
+    @property
+    def guid(self):
+        return self.pid
+
+    @property
+    def updated_by(self):
+        return self.creado_por.username if self.creado_por else "N/A"
+
+    @property
+    def updated_at(self):
+        return self.fecha_creacion
