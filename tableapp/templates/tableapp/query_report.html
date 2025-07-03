@@ -55,7 +55,7 @@
                          class="form-control form-control-sm">
                 </td>
               {% else %}
-                <td>{{ row|get_item:'Fecha FLP'|date:"F j, Y, P" }}</td>
+                <td>{{ row|get_item:'Fecha FLP'|date:"F j, Y" }}</td>
               {% endif %}
 
               <!-- FEF -->
@@ -73,7 +73,7 @@
                          class="form-control form-control-sm">
                 </td>
               {% else %}
-                <td>{{ row|get_item:'Fecha FEF'|date:"F j, Y, P" }}</td>
+                <td>{{ row|get_item:'Fecha FEF'|date:"F j, Y" }}</td>
               {% endif %}
 
               <!-- FULL -->

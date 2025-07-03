@@ -30,8 +30,8 @@ class PvoRegistro(models.Model):
 
     # Fechas
     fecha_full = models.DateField(null=True, blank=True)
-    fecha_flp = models.DateTimeField(null=True, blank=True)
-    fecha_fef = models.DateTimeField(null=True, blank=True)
+    fecha_flp = models.DateField(null=True, blank=True)
+    fecha_fef = models.DateField(null=True, blank=True)
 
     # Auditoría
     creado_por = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
