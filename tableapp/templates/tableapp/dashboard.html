@@ -1,21 +1,11 @@
 {% extends 'tableapp/base.html' %}
 {% block content %}
 <h2>Welcome, {{ user.username }}!</h2>
-<p>Choose a table to manage:</p>
+<p>Choose an option:</p>
 <ul>
     {% if perms and perms.report %}
-        <li><a href="{% url 'query_result' %}">Ver Reporte de Pedidos</a></li>
         <li><a href="{% url 'query_report_view' %}">Ver Reporte de Pedidos Activos</a></li>
-        <li><a href="{% url 'historial_pvo' %}">Historial PVO</a></li>
         <li><a href="{% url 'pvo_list' %}">Gestión PVO</a></li>
-    {% endif %}
-    
-    {% if perms.can_read_table1 %}
-        <li><a href="{% url 'table1_list' %}">Manage Table 1</a></li>
-    {% endif %}
-    
-    {% if perms.can_read_table2 %}
-        <li><a href="{% url 'table2_list' %}">Manage Table 2</a></li>
     {% endif %}
 </ul>
 {% endblock %}

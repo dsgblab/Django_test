@@ -1,18 +1,5 @@
 from django import forms
-from .models import Table1, Table2, PvoRegistro
-from django.forms.widgets import DateTimeInput
-
-class Table1Form(forms.ModelForm):
-    class Meta:
-        model = Table1
-        fields = '__all__'
-
-class Table2Form(forms.ModelForm):
-    class Meta:
-        model = Table2
-        fields = '__all__'
-
-
+from .models import PvoRegistro
 
 
 class PvoRegistroForm(forms.ModelForm):

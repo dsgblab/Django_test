@@ -6,7 +6,7 @@
 {% block content %}
 <h2 class="mb-4">Reporte de Pedidos Activos</h2>
 
-<!-- Aqui toco agregar un input oculto con el CSRF globalmente -->
+<!-- CSRF token oculto para HTMX -->
 <input type="hidden" id="csrf-token" value="{{ csrf_token }}">
 
 <div class="scroll-wrapper">
@@ -16,12 +16,14 @@
         {% for col in columns %}
           {% if col == 'Fecha Pedido' %}
             <th>{{ col }}</th>
+
           {% elif col == 'Fecha Requerida' %}
             <th>{{ col }}</th>
             <th>Fecha liberación a planta (FLP)</th>
             <th>Fecha entrega final (FEF)</th>
             <th>Fecha de llegada de último insumo (FULL)</th>
-          {% elif col != 'Fecha Entrega Planta' and col != 'Fecha Estimado Fin' %}
+
+          {% elif col != 'Fecha Entrega Planta' and col != 'Fecha Estimado Fin' and col != 'Fecha FULL' and col != 'Fecha FLP' and col != 'Fecha FEF' %}
             <th>{{ col }}</th>
           {% endif %}
         {% endfor %}
@@ -39,48 +41,60 @@
               <td>{{ row|get_item:col }}</td>
 
               <!-- FLP -->
-              <td
-                hx-put="{% url 'actualizar_fecha' row|get_item:'PID' 'FLP' %}"
-                hx-include="closest td"
-                hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
-                hx-trigger="change"
-                hx-swap="none"
-              >
-                <input type="date"
-                       name="fecha"
-                       value="{{ row|get_item:'Fecha Entrega Planta'|date:'Y-m-d' }}"
-                       class="form-control form-control-sm">
-              </td>
+              {% if perms.can_edit_flp %}
+                <td
+                  hx-put="{% url 'actualizar_fecha' row|get_item:'PID' 'FLP' %}"
+                  hx-include="closest td"
+                  hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+                  hx-trigger="change"
+                  hx-swap="none"
+                >
+                  <input type="date"
+                         name="fecha"
+                         value="{{ row|get_item:'Fecha FLP'|date:'Y-m-d' }}"
+                         class="form-control form-control-sm">
+                </td>
+              {% else %}
+                <td>{{ row|get_item:'Fecha FLP'|date:"F j, Y, P" }}</td>
+              {% endif %}
 
               <!-- FEF -->
-              <td
-                hx-put="{% url 'actualizar_fecha' row|get_item:'PID' 'FEF' %}"
-                hx-include="closest td"
-                hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
-                hx-trigger="change"
-                hx-swap="none"
-              >
-                <input type="date"
-                       name="fecha"
-                       value="{{ row|get_item:'Fecha Estimado Fin'|date:'Y-m-d' }}"
-                       class="form-control form-control-sm">
-              </td>
+              {% if perms.can_edit_fef %}
+                <td
+                  hx-put="{% url 'actualizar_fecha' row|get_item:'PID' 'FEF' %}"
+                  hx-include="closest td"
+                  hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+                  hx-trigger="change"
+                  hx-swap="none"
+                >
+                  <input type="date"
+                         name="fecha"
+                         value="{{ row|get_item:'Fecha FEF'|date:'Y-m-d' }}"
+                         class="form-control form-control-sm">
+                </td>
+              {% else %}
+                <td>{{ row|get_item:'Fecha FEF'|date:"F j, Y, P" }}</td>
+              {% endif %}
 
               <!-- FULL -->
-              <td
-                hx-put="{% url 'actualizar_fecha' row|get_item:'PID' 'FULL' %}"
-                hx-include="closest td"
-                hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
-                hx-trigger="change"
-                hx-swap="none"
-              >
-                <input type="date"
-                       name="fecha"
-                       value="{{ row|get_item:'Fecha de llegada de último insumo (FULL)'|date:'Y-m-d' }}"
-                       class="form-control form-control-sm">
-              </td>
+              {% if perms.can_edit_full %}
+                <td
+                  hx-put="{% url 'actualizar_fecha' row|get_item:'PID' 'FULL' %}"
+                  hx-include="closest td"
+                  hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+                  hx-trigger="change"
+                  hx-swap="none"
+                >
+                  <input type="date"
+                         name="fecha"
+                         value="{{ row|get_item:'Fecha FULL'|date:'Y-m-d' }}"
+                         class="form-control form-control-sm">
+                </td>
+              {% else %}
+                <td>{{ row|get_item:'Fecha FULL'|date:"F j, Y" }}</td>
+              {% endif %}
 
-            {% elif col != 'Fecha Entrega Planta' and col != 'Fecha Estimado Fin' %}
+            {% elif col != 'Fecha Entrega Planta' and col != 'Fecha Estimado Fin' and col != 'Fecha FULL' and col != 'Fecha FLP' and col != 'Fecha FEF' %}
               <td>{{ row|get_item:col }}</td>
             {% endif %}
           {% endfor %}

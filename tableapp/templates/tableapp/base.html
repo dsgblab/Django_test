@@ -2,11 +2,14 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>{% block title %}My Tables{% endblock %}</title>
+  <title>{% block title %}Gestión PVO{% endblock %}</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
 
+  {% load static %}
   <!-- Bootstrap 4 -->
   <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+  <link rel="stylesheet" href="{% static 'tableapp/css/estilos.css' %}">
+  <link rel="icon" href="{% static 'tableapp/img/logo.ico' %}" type="image/x-icon">
   <script src="https://unpkg.com/htmx.org@1.9.6"></script>
 
   <style>
@@ -42,16 +45,36 @@
 {% if not request.htmx %}
 <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
   <div class="container-fluid">
-    <a class="navbar-brand" href="/">My App</a>
-    {% if user.is_authenticated %}
-      <span class="navbar-text mr-3">Logged in as {{ user.username }}</span>
-      <form method="post" action="{% url 'logout' %}" style="display:inline;">
-        {% csrf_token %}
-        <button type="submit" class="btn btn-outline-light">Logout</button>
-      </form>
-    {% else %}
-      <a class="btn btn-outline-light" href="{% url 'login' %}">Login</a>
-    {% endif %}
+    <a class="navbar-brand" href="{% url 'dashboard' %}">Gestión PVO</a>
+
+    <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNavDropdown" aria-controls="navbarNavDropdown" aria-expanded="false" aria-label="Toggle navigation">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+
+    <div class="collapse navbar-collapse" id="navbarNavDropdown">
+      <ul class="navbar-nav mr-auto">
+        <li class="nav-item dropdown">
+          <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button"
+             data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+            Menú
+          </a>
+          <div class="dropdown-menu" aria-labelledby="navbarDropdown">
+            <a class="dropdown-item" href="{% url 'query_report_view' %}">Pedidos Activos</a>
+            <a class="dropdown-item" href="{% url 'pvo_list' %}">Gestión PVO</a>
+          </div>
+        </li>
+      </ul>
+
+      {% if user.is_authenticated %}
+        <span class="navbar-text mr-3">Bienvenido, {{ user.username }}</span>
+        <form method="post" action="{% url 'logout' %}" style="display:inline;">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-outline-light btn-sm">Cerrar sesión</button>
+        </form>
+      {% else %}
+        <a class="btn btn-outline-light btn-sm" href="{% url 'login' %}">Iniciar sesión</a>
+      {% endif %}
+    </div>
   </div>
 </nav>
 {% endif %}
