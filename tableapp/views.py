@@ -166,9 +166,11 @@ def query_report_view(request):
         pid_base = str(registro['PID']).strip()
 
         fechas_extra = fechas_dict.get(pid_base, {})
-        registro['Fecha FULL'] = fechas_extra.get('FULL')
-        registro['Fecha FLP'] = fechas_extra.get('FLP')  
-        registro['Fecha FEF'] = fechas_extra.get('FEF')  
+        # Si existe fecha en PvoRegistro, pues la usamos.
+        registro['Fecha FULL'] = fechas_extra.get('FULL') or registro.get('Fecha FULL')
+        registro['Fecha FLP'] = fechas_extra.get('FLP') or registro.get('Fecha FLP')
+        registro['Fecha FEF'] = fechas_extra.get('FEF') or registro.get('Fecha FEF')
+ 
 
         registros_finales.append(registro)
 
@@ -296,11 +298,14 @@ def pvo_edit(request, pk):
 
 
 def actualizar_fecha(request, pid, campo):
+    
+
     if request.method == 'PUT':
         try:
             body_unicode = request.body.decode('utf-8')
             data = dict(x.split('=') for x in body_unicode.split('&'))
             fecha_nueva = data.get('fecha', '')
+            print(f"Actualizando {pid}: campo={campo}, fecha={fecha_nueva}")
 
             registro, created = PvoRegistro.objects.get_or_create(pid=pid)
 

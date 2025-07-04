@@ -19,9 +19,9 @@
 
           {% elif col == 'Fecha Requerida' %}
             <th>{{ col }}</th>
+            <th>Fecha de llegada de último insumo (FULL)</th>
             <th>Fecha liberación a planta (FLP)</th>
             <th>Fecha entrega final (FEF)</th>
-            <th>Fecha de llegada de último insumo (FULL)</th>
 
           {% elif col != 'Fecha Entrega Planta' and col != 'Fecha Estimado Fin' and col != 'Fecha FULL' and col != 'Fecha FLP' and col != 'Fecha FEF' %}
             <th>{{ col }}</th>
@@ -39,6 +39,24 @@
 
             {% elif col == 'Fecha Requerida' %}
               <td>{{ row|get_item:col }}</td>
+
+              <!-- FULL -->
+              {% if perms.can_edit_full %}
+                <td
+                  hx-put="{% url 'actualizar_fecha' row|get_item:'PID' 'FULL' %}"
+                  hx-include="closest td"
+                  hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+                  hx-trigger="change"
+                  hx-swap="none"
+                >
+                  <input type="date"
+                         name="fecha"
+                         value="{{ row|get_item:'Fecha FULL'|date:'Y-m-d' }}"
+                         class="form-control form-control-sm">
+                </td>
+              {% else %}
+                <td>{{ row|get_item:'Fecha FULL'|date:"F j, Y" }}</td>
+              {% endif %}              
 
               <!-- FLP -->
               {% if perms.can_edit_flp %}
@@ -74,24 +92,6 @@
                 </td>
               {% else %}
                 <td>{{ row|get_item:'Fecha FEF'|date:"F j, Y" }}</td>
-              {% endif %}
-
-              <!-- FULL -->
-              {% if perms.can_edit_full %}
-                <td
-                  hx-put="{% url 'actualizar_fecha' row|get_item:'PID' 'FULL' %}"
-                  hx-include="closest td"
-                  hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
-                  hx-trigger="change"
-                  hx-swap="none"
-                >
-                  <input type="date"
-                         name="fecha"
-                         value="{{ row|get_item:'Fecha FULL'|date:'Y-m-d' }}"
-                         class="form-control form-control-sm">
-                </td>
-              {% else %}
-                <td>{{ row|get_item:'Fecha FULL'|date:"F j, Y" }}</td>
               {% endif %}
 
             {% elif col != 'Fecha Entrega Planta' and col != 'Fecha Estimado Fin' and col != 'Fecha FULL' and col != 'Fecha FLP' and col != 'Fecha FEF' %}
