@@ -39,10 +39,13 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 RUN pip install --no-cache-dir gunicorn
 
+# Create static directory and collect static files
+RUN mkdir -p /app/static
+RUN python manage.py collectstatic --noinput
 # Copy project files
 COPY . .
 
 # Expose port
-EXPOSE 8000
+EXPOSE 8001
 
-CMD ["gunicorn", "myproject.wsgi:application", "--bind", "0.0.0.0:8000"]
+CMD ["gunicorn", "myproject.wsgi:application", "--bind", "0.0.0.0:8001"]
