@@ -25,7 +25,7 @@ SECRET_KEY = 'django-insecure-bw&58@d3pz7rvl+yo_^=j65@@t&^lxuw&8=s$g9^s2iu&g^d*e
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['*']
 
 
 # Application definition
@@ -86,9 +86,11 @@ DATABASES = {
         'ENGINE': 'mssql',
         'NAME': 'django_test_db',
         'HOST': 'EQ065',
+        'USER': 'sa',
+        'PASSWORD':'As142536*',
         'OPTIONS': {
             'driver': 'ODBC Driver 17 for SQL Server',
-            'trusted_connection': 'yes',
+            'trusted_connection': 'no',
             'trust_server_certificate': True,
         },
     },
@@ -96,9 +98,11 @@ DATABASES = {
         'ENGINE': 'mssql',
         'NAME': 'ssf_genericos',
         'HOST': 'EQ065',
+        'USER': 'sa',
+        'PASSWORD':'As142536*',
         'OPTIONS': {
             'driver': 'ODBC Driver 17 for SQL Server',
-            'trusted_connection': 'yes',
+            'trusted_connection': 'no',
             'trust_server_certificate': True,
         },
     }
@@ -145,3 +149,19 @@ STATIC_URL = 'static/'
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# CSRF Settings
+CSRF_TRUSTED_ORIGINS = [
+    'http://nocodb.labgenericosdebelleza.com',
+    'https://nocodb.labgenericosdebelleza.com',
+    'http://localhost',
+    'http://127.0.0.1',
+]
+
+# If using HTTPS
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+
+# In settings.py
+USE_TLS = True
+CSRF_COOKIE_SECURE = True
+SESSION_COOKIE_SECURE = True
