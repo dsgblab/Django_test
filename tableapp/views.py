@@ -151,26 +151,33 @@ def query_report_view(request):
     # 2. Consulta de fechas locales
     with connections['default'].cursor() as cursor2:
         cursor2.execute("""
-            SELECT pid, fecha_full, fecha_flp, fecha_fef
+            SELECT pid, fecha_full, fecha_flp, fecha_fef, creado_por_id, fecha_creacion
             FROM tableapp_pvoregistro
         """)
         fechas = cursor2.fetchall()
         fechas_dict = {
-            row[0]: {'FULL': row[1], 'FLP': row[2], 'FEF': row[3]}
+            row[0]: {
+                'FULL': row[1],
+                'FLP': row[2],
+                'FEF': row[3],
+                'ACTUALIZADO_POR': row[4],  # usamos creado_por_id
+                'ACTUALIZADO_EN': row[5]    # usamos fecha_creacion
+            }
             for row in fechas
         }
 
-    # 3. Fusión 
+
+    # 3. Fusión
     for row in rows:
         registro = dict(zip(columns, row))
         pid_base = str(registro['PID']).strip()
 
         fechas_extra = fechas_dict.get(pid_base, {})
-        # Si existe fecha en PvoRegistro, pues la usamos.
         registro['Fecha FULL'] = fechas_extra.get('FULL') or registro.get('Fecha FULL')
         registro['Fecha FLP'] = fechas_extra.get('FLP') or registro.get('Fecha FLP')
         registro['Fecha FEF'] = fechas_extra.get('FEF') or registro.get('Fecha FEF')
- 
+        registro['Actualizado por'] = fechas_extra.get('ACTUALIZADO_POR')
+        registro['Última Fecha'] = fechas_extra.get('ACTUALIZADO_EN')
 
         registros_finales.append(registro)
 
@@ -256,8 +263,8 @@ def pvo_create(request):
 
     if request.method == 'POST' and form.is_valid():
         registro = form.save(commit=False)
-        registro.creado_por = request.user
-        registro.fecha_creacion = timezone.now()
+        registro.actualizado_por = request.user
+        registro.actualizado_en = timezone.now()
         registro.save()
         if request.htmx:
             return HttpResponse(status=204)
@@ -281,7 +288,8 @@ def pvo_edit(request, pk):
 
     if request.method == 'POST' and form.is_valid():
         registro = form.save(commit=False)
-        registro.creado_por = request.user 
+        registro.actualizado_por = request.user
+        registro.actualizado_en = timezone.now()
         registro.save()
         if request.htmx:
             return HttpResponse(status=204)
@@ -296,10 +304,7 @@ def pvo_edit(request, pk):
     })
 
 
-
 def actualizar_fecha(request, pid, campo):
-    
-
     if request.method == 'PUT':
         try:
             body_unicode = request.body.decode('utf-8')
@@ -316,7 +321,10 @@ def actualizar_fecha(request, pid, campo):
             elif campo == 'FEF':
                 registro.fecha_fef = datetime.strptime(fecha_nueva, '%Y-%m-%d') if fecha_nueva else None
 
+            # ✅ Actualiza siempre quien y cuándo
             registro.creado_por = request.user
+            registro.fecha_creacion = now()
+
             registro.save()
             return HttpResponse(status=204)
         except Exception as e:
