@@ -1,5 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import User
+from simple_history.models import HistoricalRecords
 
 class TablePermission(models.Model):
     TABLE_CHOICES = (
@@ -37,6 +38,8 @@ class PvoRegistro(models.Model):
     creado_por = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
     fecha_creacion = models.DateTimeField(auto_now_add=True)
 
+    history = HistoricalRecords()
+    
     class Meta:
         managed = True
         db_table = 'tableapp_pvoregistro'
