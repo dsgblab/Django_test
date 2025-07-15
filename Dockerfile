@@ -38,11 +38,12 @@ RUN curl -sSL https://packages.microsoft.com/keys/microsoft.asc | apt-key add - 
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
+# Copy project files
+COPY . .
+
 # Create static directory and collect static files
 RUN mkdir -p /app/static
 RUN python manage.py collectstatic --noinput
-# Copy project files
-COPY . .
 
 # Expose port
 EXPOSE 8001
