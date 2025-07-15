@@ -23,7 +23,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'django-insecure-bw&58@d3pz7rvl+yo_^=j65@@t&^lxuw&8=s$g9^s2iu&g^d*e'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False
+DEBUG = True
 
 ALLOWED_HOSTS = ['*']
 
@@ -89,7 +89,7 @@ DATABASES = {
         'NAME': 'django_test_db',
         'HOST': 'EQ065',
         'USER': 'sa',
-        'PASSWORD':'As142536*',
+        'PASSWORD': 'As142536*',
         'OPTIONS': {
             'driver': 'ODBC Driver 17 for SQL Server',
             'trusted_connection': 'no',
@@ -101,7 +101,7 @@ DATABASES = {
         'NAME': 'ssf_genericos',
         'HOST': 'EQ065',
         'USER': 'sa',
-        'PASSWORD':'As142536*',
+        'PASSWORD': 'As142536*',
         'OPTIONS': {
             'driver': 'ODBC Driver 17 for SQL Server',
             'trusted_connection': 'no',
@@ -145,7 +145,6 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
-# Static files (CSS, JavaScript, Images)
 STATIC_URL = '/static/'
 STATIC_ROOT = '/app/static/'
 
@@ -165,7 +164,6 @@ CSRF_TRUSTED_ORIGINS = [
 # If using HTTPS
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
-# In settings.py
 USE_TLS = True
 CSRF_COOKIE_SECURE = True
 SESSION_COOKIE_SECURE = True

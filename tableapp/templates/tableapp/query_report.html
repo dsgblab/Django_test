@@ -54,7 +54,9 @@
                            class="form-control form-control-sm w-100">
                   </td>
                 {% else %}
-                  <td class="text-nowrap"><span class="badge bg-secondary">{{ row|get_item:'Fecha FULL'|default:"—" }}</span></td>
+                  <td class="text-nowrap">
+                    {{ row|get_item:'Fecha FULL'|default:"—" }}
+                  </td>
                 {% endif %}
                 
                 <!-- FLP -->
@@ -72,7 +74,9 @@
                            class="form-control form-control-sm w-100">
                   </td>
                 {% else %}
-                  <td class="text-nowrap"><span class="badge bg-secondary">{{ row|get_item:'Fecha FLP'|default:"—" }}</span></td>
+                  <td class="text-nowrap">
+                    {{ row|get_item:'Fecha FLP'|default:"—" }}
+                  </td>
                 {% endif %}
 
                 <!-- FEF -->
@@ -90,7 +94,9 @@
                            class="form-control form-control-sm w-100">
                   </td>
                 {% else %}
-                  <td class="text-nowrap"><span class="badge bg-secondary">{{ row|get_item:'Fecha FEF'|default:"—" }}</span></td>
+                  <td class="text-nowrap">
+                    {{ row|get_item:'Fecha FEF'|default:"—" }}
+                  </td>
                 {% endif %}
 
               {% elif col != 'Fecha Entrega Planta' and col != 'Fecha Estimado Fin' and col != 'Fecha FULL' and col != 'Fecha FLP' and col != 'Fecha FEF' %}
