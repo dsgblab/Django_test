@@ -1,25 +1,22 @@
+{% load static %}
 @font-face {
     font-family: 'D-DIN';
-    src: url("../fonts/D-DINExp.otf") format('opentype');
+    src: url("{% static 'fonts/D-DINExp.otf' %}") format('opentype');
     font-weight: normal;
     font-style: normal;
 }
-
 @font-face {
     font-family: 'D-DIN';
-    src: url("../fonts/D-DIN-Bold.otf") format('opentype');
+    src: url("{% static 'fonts/D-DIN-Bold.otf' %}") format('opentype');
     font-weight: bold;
     font-style: normal;
 }
-
 @font-face {
     font-family: 'D-DIN';
-    src: url("../fonts/D-DIN-Italic.otf") format('opentype');
+    src: url("{% static 'fonts/D-DIN-Italic.otf' %}") format('opentype');
     font-weight: normal;
     font-style: italic;
 }
-
-
 html, body, * {
     font-family: 'D-DIN', sans-serif !important;
     font-weight: normal !important;
