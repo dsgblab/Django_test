@@ -42,7 +42,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
 
 # Create static directory and collect static files
-RUN mkdir -p /app/static
+RUN mkdir -p /app/staticfiles
 RUN python manage.py collectstatic --noinput
 
 # Expose port
