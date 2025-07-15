@@ -7,6 +7,11 @@ from django.http import HttpResponse
 from django.utils import timezone
 from django.utils.timezone import now
 from datetime import datetime, date
+from django.shortcuts import render, get_object_or_404
+from .models import PvoRegistro
+from django.contrib.auth.decorators import login_required
+from simple_history.utils import update_change_reason
+
 
 
 def check_perm(user, table, perm):
@@ -23,6 +28,10 @@ def get_perm_dict(user, table):
         'can_delete': check_perm(user, table, 'delete'),
         'can_read': check_perm(user, table, 'read'),
         'can_edit': check_perm(user, table, 'edit'),
+        'can_edit_full': check_perm(user, table, 'edit_full'),
+        'can_edit_flp': check_perm(user, table, 'edit_flp'),
+        'can_edit_fef': check_perm(user, table, 'edit_fef'),
+        'can_view_history': check_perm(user, table, 'view_history'),  
     }
 
 
@@ -48,6 +57,7 @@ def query_report_view(request):
         'can_edit_full': check_perm(request.user, 'edit_dates', 'edit_full'),
         'can_edit_flp': check_perm(request.user, 'edit_dates', 'edit_flp'),
         'can_edit_fef': check_perm(request.user, 'edit_dates', 'edit_fef'),
+        'can_view_history': check_perm(request.user, 'report', 'view_history'),
     }
     registros_finales = []
 
@@ -304,6 +314,7 @@ def pvo_edit(request, pk):
     })
 
 
+@login_required
 def actualizar_fecha(request, pid, campo):
     if request.method == 'PUT':
         try:
@@ -314,6 +325,10 @@ def actualizar_fecha(request, pid, campo):
 
             registro, created = PvoRegistro.objects.get_or_create(pid=pid)
 
+            # Asigna el usuario para simple_history
+            update_change_reason(registro, f"{campo} actualizado por {request.user.username}")
+            registro._history_user = request.user  # Asegura que quede registrado
+
             if campo == 'FULL':
                 registro.fecha_full = fecha_nueva or None
             elif campo == 'FLP':
@@ -321,12 +336,51 @@ def actualizar_fecha(request, pid, campo):
             elif campo == 'FEF':
                 registro.fecha_fef = datetime.strptime(fecha_nueva, '%Y-%m-%d') if fecha_nueva else None
 
-            # ✅ Actualiza siempre quien y cuándo
+            #  Actualiza siempre quien y cuándo
             registro.creado_por = request.user
             registro.fecha_creacion = now()
 
             registro.save()
             return HttpResponse(status=204)
         except Exception as e:
+            print(f"Error actualizando {pid}: {e}")
             return HttpResponse(f"Error: {e}", status=400)
     return HttpResponse(status=405)
+
+
+@login_required
+def pvo_historial_modal(request, pid):
+    if not check_perm(request.user, 'edit_dates', 'view_history'):
+        return render(request, 'tableapp/no_permission.html')
+
+    registro = get_object_or_404(PvoRegistro, pid=pid)
+    historico = []
+
+    campos_visibles = [
+        field.name for field in registro.history.model._meta.fields
+        if field.name not in ('id', 'history_id', 'history_date', 'history_user',
+                              'history_type', 'history_change_reason', 'creado_por', 'fecha_creacion')
+    ]
+
+    for h in registro.history.all().order_by('-history_date'):
+        cambios_reales = []
+        if h.prev_record:
+            for field in campos_visibles:
+                old = getattr(h.prev_record, field, None)
+                new = getattr(h, field, None)
+                if old != new:
+                    cambios_reales.append({
+                        'field': field,
+                        'old': old,
+                        'new': new
+                    })
+        if cambios_reales:
+            historico.append({
+                'history': h,
+                'cambios': cambios_reales
+            })
+
+    return render(request, 'tableapp/pvo_historial_modal.html', {
+        'registro': registro,
+        'historico': historico,
+    })

@@ -4,103 +4,125 @@
 {% block title %}Reporte PVO{% endblock %}
 
 {% block content %}
-<h2 class="mb-4">Reporte de Pedidos Activos</h2>
+<h2 class="page-title mb-2">📊 Reporte de Pedidos Activos</h2>
 
-<!-- CSRF token oculto para HTMX -->
 <input type="hidden" id="csrf-token" value="{{ csrf_token }}">
 
-<div class="scroll-wrapper">
-  <table class="table table-bordered table-hover table-striped">
-    <thead class="thead-dark">
-      <tr>
-        {% for col in columns %}
-          {% if col == 'Fecha Pedido' %}
-            <th>{{ col }}</th>
-
-          {% elif col == 'Fecha Requerida' %}
-            <th>{{ col }}</th>
-            <th>Fecha de llegada de último insumo (FULL)</th>
-            <th>Fecha liberación a planta (FLP)</th>
-            <th>Fecha entrega final (FEF)</th>
-
-          {% elif col != 'Fecha Entrega Planta' and col != 'Fecha Estimado Fin' and col != 'Fecha FULL' and col != 'Fecha FLP' and col != 'Fecha FEF' %}
-            <th>{{ col }}</th>
-          {% endif %}
-        {% endfor %}
-      </tr>
-    </thead>
-
-    <tbody>
-      {% for row in registros %}
+<div class="card shadow-sm rounded">
+  <div class="table-responsive" style="max-height: 75vh;">
+    <table class="table table-hover table-bordered align-middle text-center">
+      <thead class="sticky-top" style="background-color: #1e293b; color: #fff;">
         <tr>
           {% for col in columns %}
             {% if col == 'Fecha Pedido' %}
-              <td>{{ row|get_item:col }}</td>
-
+              <th class="text-nowrap">{{ col }}</th>
             {% elif col == 'Fecha Requerida' %}
-              <td>{{ row|get_item:col }}</td>
-
-              <!-- FULL -->
-              {% if perms.can_edit_full %}
-                <td
-                  hx-put="{% url 'actualizar_fecha' row|get_item:'PID' 'FULL' %}"
-                  hx-include="closest td"
-                  hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
-                  hx-trigger="change"
-                  hx-swap="none"
-                >
-                  <input type="date"
-                         name="fecha"
-                         value="{{ row|get_item:'Fecha FULL'|date:'Y-m-d' }}"
-                         class="form-control form-control-sm">
-                </td>
-              {% else %}
-                <td>{{ row|get_item:'Fecha FULL'|date:"F j, Y" }}</td>
-              {% endif %}              
-
-              <!-- FLP -->
-              {% if perms.can_edit_flp %}
-                <td
-                  hx-put="{% url 'actualizar_fecha' row|get_item:'PID' 'FLP' %}"
-                  hx-include="closest td"
-                  hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
-                  hx-trigger="change"
-                  hx-swap="none"
-                >
-                  <input type="date"
-                         name="fecha"
-                         value="{{ row|get_item:'Fecha FLP'|date:'Y-m-d' }}"
-                         class="form-control form-control-sm">
-                </td>
-              {% else %}
-                <td>{{ row|get_item:'Fecha FLP'|date:"F j, Y" }}</td>
-              {% endif %}
-
-              <!-- FEF -->
-              {% if perms.can_edit_fef %}
-                <td
-                  hx-put="{% url 'actualizar_fecha' row|get_item:'PID' 'FEF' %}"
-                  hx-include="closest td"
-                  hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
-                  hx-trigger="change"
-                  hx-swap="none"
-                >
-                  <input type="date"
-                         name="fecha"
-                         value="{{ row|get_item:'Fecha FEF'|date:'Y-m-d' }}"
-                         class="form-control form-control-sm">
-                </td>
-              {% else %}
-                <td>{{ row|get_item:'Fecha FEF'|date:"F j, Y" }}</td>
-              {% endif %}
-
+              <th class="text-nowrap">{{ col }}</th>
+              <th class="text-nowrap">FULL<br><small>(último insumo)</small></th>
+              <th class="text-nowrap">FLP<br><small>(liberación planta)</small></th>
+              <th class="text-nowrap">FEF<br><small>(entrega final)</small></th>
             {% elif col != 'Fecha Entrega Planta' and col != 'Fecha Estimado Fin' and col != 'Fecha FULL' and col != 'Fecha FLP' and col != 'Fecha FEF' %}
-              <td>{{ row|get_item:col }}</td>
+              <th class="text-nowrap">{{ col }}</th>
             {% endif %}
           {% endfor %}
+          {% if perms.can_view_history %}
+            <th class="text-nowrap">Acciones</th>
+          {% endif %}
         </tr>
-      {% endfor %}
-    </tbody>
-  </table>
+      </thead>
+      <tbody>
+        {% for row in registros %}
+          <tr>
+            {% for col in columns %}
+              {% if col == 'Fecha Pedido' %}
+                <td class="text-nowrap">{{ row|get_item:col }}</td>
+              {% elif col == 'Fecha Requerida' %}
+                <td class="text-nowrap">{{ row|get_item:col }}</td>
+                
+                <!-- FULL -->
+                {% if perms.can_edit_full %}
+                  <td
+                    hx-put="{% url 'actualizar_fecha' row|get_item:'PID' 'FULL' %}"
+                    hx-include="closest td"
+                    hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+                    hx-trigger="change"
+                    hx-swap="none"
+                  >
+                    <input type="date"
+                           name="fecha"
+                           value="{{ row|get_item:'Fecha FULL'|date:'Y-m-d' }}"
+                           class="form-control form-control-sm w-100">
+                  </td>
+                {% else %}
+                  <td class="text-nowrap"><span class="badge bg-secondary">{{ row|get_item:'Fecha FULL'|default:"—" }}</span></td>
+                {% endif %}
+                
+                <!-- FLP -->
+                {% if perms.can_edit_flp %}
+                  <td
+                    hx-put="{% url 'actualizar_fecha' row|get_item:'PID' 'FLP' %}"
+                    hx-include="closest td"
+                    hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+                    hx-trigger="change"
+                    hx-swap="none"
+                  >
+                    <input type="date"
+                           name="fecha"
+                           value="{{ row|get_item:'Fecha FLP'|date:'Y-m-d' }}"
+                           class="form-control form-control-sm w-100">
+                  </td>
+                {% else %}
+                  <td class="text-nowrap"><span class="badge bg-secondary">{{ row|get_item:'Fecha FLP'|default:"—" }}</span></td>
+                {% endif %}
+
+                <!-- FEF -->
+                {% if perms.can_edit_fef %}
+                  <td
+                    hx-put="{% url 'actualizar_fecha' row|get_item:'PID' 'FEF' %}"
+                    hx-include="closest td"
+                    hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+                    hx-trigger="change"
+                    hx-swap="none"
+                  >
+                    <input type="date"
+                           name="fecha"
+                           value="{{ row|get_item:'Fecha FEF'|date:'Y-m-d' }}"
+                           class="form-control form-control-sm w-100">
+                  </td>
+                {% else %}
+                  <td class="text-nowrap"><span class="badge bg-secondary">{{ row|get_item:'Fecha FEF'|default:"—" }}</span></td>
+                {% endif %}
+
+              {% elif col != 'Fecha Entrega Planta' and col != 'Fecha Estimado Fin' and col != 'Fecha FULL' and col != 'Fecha FLP' and col != 'Fecha FEF' %}
+                <td class="text-nowrap">{{ row|get_item:col }}</td>
+              {% endif %}
+            {% endfor %}
+
+            {% if perms.can_view_history %}
+              <td>
+                <button class="btn btn-sm btn-outline-primary"
+                        hx-get="{% url 'pvo_historial_modal' row|get_item:'PID' %}"
+                        hx-target="#modalHistorial .modal-content"
+                        hx-trigger="click"
+                        data-bs-toggle="modal"
+                        data-bs-target="#modalHistorial">
+                  📜 Ver histórico
+                </button>
+              </td>
+            {% endif %}
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Modal -->
+<div class="modal fade" id="modalHistorial" tabindex="-1" aria-labelledby="modalHistorialLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable">
+    <div class="modal-content">
+      <!-- Aquí carga HTMX -->
+    </div>
+  </div>
 </div>
 {% endblock %}

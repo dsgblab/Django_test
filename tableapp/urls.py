@@ -20,4 +20,5 @@ urlpatterns = [
 
     path('actualizar-fecha/<str:pid>/<str:campo>/', views.actualizar_fecha, name='actualizar_fecha'),
 
+    path('pvo/historial/<str:pid>/', views.pvo_historial_modal, name='pvo_historial_modal'),
 ]

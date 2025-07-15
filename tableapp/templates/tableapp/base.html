@@ -2,89 +2,84 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>{% block title %}Gestión PVO{% endblock %}</title>
+  <title>{% block title %}APP-PVO{% endblock %}</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
 
   {% load static %}
-  <!-- Bootstrap 4 -->
-  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
-  <link rel="stylesheet" href="{% static 'tableapp/css/estilos.css' %}">
-  <link rel="icon" href="{% static 'tableapp/img/logo.ico' %}" type="image/x-icon">
+  <!-- Favicon -->
+  <link rel="icon" href="{% static 'img/icono.ico' %}" type="image/x-icon">
+
+  <!-- Tabler CSS -->
+  <link href="https://unpkg.com/@tabler/core@latest/dist/css/tabler.min.css" rel="stylesheet"/>
+  <link rel="stylesheet" href="{% static 'css/estilos.css' %}">
   <script src="https://unpkg.com/htmx.org@1.9.6"></script>
 
   <style>
-    body {
-      margin: 0;
-      padding: 0;
+    .navbar-brand img {
+      height: 40px; /* Controla el alto del logo */
+      width: auto;  /* Mantiene la proporción */
     }
 
-    .scroll-wrapper {
-      max-height: calc(100vh - 150px);
-      overflow: auto;
-      border: 1px solid #ccc;
-      margin-bottom: 0;
-    }
-
-    .scroll-wrapper table {
-      min-width: 1800px;
-      table-layout: auto;
-    }
-
-    th, td {
-      white-space: nowrap;
-    }
-
-    main {
-      padding: 20px;
+    @media (max-width: 768px) {
+      .navbar-brand img {
+        height: 30px; /* Un poco más pequeño en móviles */
+      }
     }
   </style>
 </head>
 <body>
 
-<!-- Navbar solo si NO es modal (HTMX) -->
 {% if not request.htmx %}
-<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
-  <div class="container-fluid">
-    <a class="navbar-brand" href="{% url 'dashboard' %}">Gestión PVO</a>
+<!-- Navbar superior -->
+<header class="navbar navbar-expand-md navbar-dark bg-dark">
+  <div class="container-xl d-flex justify-content-between align-items-center">
+    <!-- Logo -->
+    <a class="navbar-brand d-flex align-items-center" href="{% url 'dashboard' %}">
+      <img src="{% static 'img/gb.png' %}" alt="APP-PVO Logo" class="me-2">
+      <span class="fw-bold text-white">APP-PVO</span>
+    </a>
 
-    <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNavDropdown" aria-controls="navbarNavDropdown" aria-expanded="false" aria-label="Toggle navigation">
-      <span class="navbar-toggler-icon"></span>
-    </button>
-
-    <div class="collapse navbar-collapse" id="navbarNavDropdown">
-      <ul class="navbar-nav mr-auto">
-        <li class="nav-item dropdown">
-          <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button"
-             data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-            Menú
-          </a>
-          <div class="dropdown-menu" aria-labelledby="navbarDropdown">
-            <a class="dropdown-item" href="{% url 'query_report_view' %}">Pedidos Activos</a>
-            <a class="dropdown-item" href="{% url 'pvo_list' %}">Gestión PVO</a>
-          </div>
-        </li>
-      </ul>
-
-      {% if user.is_authenticated %}
-        <span class="navbar-text mr-3">Bienvenido, {{ user.username }}</span>
-        <form method="post" action="{% url 'logout' %}" style="display:inline;">
+    {% if user.is_authenticated %}
+      <div class="d-flex align-items-center">
+        <span class="text-white me-3">{{ user.username }}</span>
+        <form method="post" action="{% url 'logout' %}">
           {% csrf_token %}
           <button type="submit" class="btn btn-outline-light btn-sm">Cerrar sesión</button>
         </form>
-      {% else %}
-        <a class="btn btn-outline-light btn-sm" href="{% url 'login' %}">Iniciar sesión</a>
-      {% endif %}
-    </div>
+      </div>
+    {% else %}
+      <a class="btn btn-outline-primary" href="{% url 'login' %}">Iniciar sesión</a>
+    {% endif %}
   </div>
-</nav>
+</header>
+
+<!-- Menú horizontal debajo -->
+<div class="navbar navbar-light bg-light border-bottom">
+  <div class="container-xl">
+    <ul class="nav nav-pills">
+      <li class="nav-item">
+        <a class="nav-link" href="{% url 'query_report_view' %}">
+          📊 Pedidos Activos
+        </a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link" href="{% url 'pvo_list' %}">
+          🗂️ Gestión PVO
+        </a>
+      </li>
+    </ul>
+  </div>
+</div>
 {% endif %}
 
-<main>
-  {% block content %}{% endblock %}
+<main class="page-wrapper">
+  <div class="container-xl py-4">
+    {% block content %}{% endblock %}
+  </div>
 </main>
 
-<script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@4.5.2/dist/js/bootstrap.bundle.min.js"></script>
+<!-- Tabler JS -->
+<script src="https://unpkg.com/@tabler/core@latest/dist/js/tabler.min.js"></script>
 
 <!-- Modal HTMX -->
 <div class="modal fade" id="htmxModal" tabindex="-1" role="dialog" aria-labelledby="htmxModalLabel" aria-hidden="true">

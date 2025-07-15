@@ -1,11 +1,38 @@
 {% extends 'tableapp/base.html' %}
 {% block content %}
-<h2>Welcome, {{ user.username }}!</h2>
-<p>Choose an option:</p>
-<ul>
-    {% if perms and perms.report %}
-        <li><a href="{% url 'query_report_view' %}">Ver Reporte de Pedidos Activos</a></li>
-        <li><a href="{% url 'pvo_list' %}">Gestión PVO</a></li>
-    {% endif %}
-</ul>
+
+<div class="container-xl mt-4">
+  <h2 class="page-title">👋 Bienvenido, {{ user.username }}</h2>
+
+  <div class="row row-cards mt-4">
+    <!-- Card: Reporte de Pedidos -->
+    <div class="col-sm-6 col-lg-4">
+      <div class="card">
+        <div class="card-body text-center">
+          <div class="h1 mb-3">
+            📊
+          </div>
+          <h3 class="card-title">Reporte de Pedidos</h3>
+          <p class="text-muted">Consulta todos los pedidos activos en la plataforma.</p>
+          <a href="{% url 'query_report_view' %}" class="btn btn-primary">Ver Reporte</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Card: Gestión PVO -->
+    <div class="col-sm-6 col-lg-4">
+      <div class="card">
+        <div class="card-body text-center">
+          <div class="h1 mb-3">
+            🗂️
+          </div>
+          <h3 class="card-title">Gestión PVO</h3>
+          <p class="text-muted">Administra y actualiza la información de gestión.</p>
+          <a href="{% url 'pvo_list' %}" class="btn btn-primary">Ir a Gestión</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
 {% endblock %}
