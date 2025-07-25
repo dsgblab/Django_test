@@ -1,3 +1,4 @@
+
 """
 Django settings for myproject project.
 
@@ -37,14 +38,27 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+
+    # MFA
+    'django_otp',
+    'django_otp.plugins.otp_static',   
+    'django_otp.plugins.otp_totp',
+    'django_otp.plugins.otp_email',
+    'two_factor',
+
+    #app y extras
     'tableapp',
     'django_htmx',
     'simple_history',
 ]
 
-LOGIN_URL = 'login'
-LOGIN_REDIRECT_URL = '/'
-LOGOUT_REDIRECT_URL = 'login'
+
+
+LOGIN_URL = 'two_factor:login'
+LOGIN_REDIRECT_URL = '/postlogin/'   
+LOGOUT_REDIRECT_URL = 'two_factor:login'  
+
+
 
 
 MIDDLEWARE = [
@@ -53,6 +67,9 @@ MIDDLEWARE = [
     'django.middleware.common.CommonMiddleware',  
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
+
+    'django_otp.middleware.OTPMiddleware',
+
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'django_htmx.middleware.HtmxMiddleware',
@@ -65,7 +82,7 @@ ROOT_URLCONF = 'myproject.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [BASE_DIR / 'tableapp' / 'templates'],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [

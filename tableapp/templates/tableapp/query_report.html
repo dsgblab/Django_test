@@ -5,13 +5,15 @@
 
 {% block content %}
 <h2 class="page-title mb-2">📊 Reporte de Pedidos Activos</h2>
+<h4>Prueba: {{ 1234567|format_miles }}</h4>
 
 <input type="hidden" id="csrf-token" value="{{ csrf_token }}">
 
 <div class="card shadow-sm rounded">
   <div class="table-responsive" style="max-height: 75vh;">
-    <table class="table table-hover table-bordered align-middle text-center">
+    <table class="table table-hover table-bordered align-middle text-center" id="tablaPVO">
       <thead class="sticky-top" style="background-color: #1e293b; color: #fff;">
+        <!-- Encabezados -->
         <tr>
           {% for col in columns %}
             {% if col == 'Fecha Pedido' %}
@@ -29,7 +31,27 @@
             <th class="text-nowrap">Acciones</th>
           {% endif %}
         </tr>
+
+        <!-- Filtros -->
+        <tr>
+          {% for col in columns %}
+            {% if col == 'Fecha Pedido' %}
+              <th><input type="text" class="form-control form-control-sm" placeholder="Filtrar..." onkeyup="filtrarTabla({{ forloop.counter0 }})"></th>
+            {% elif col == 'Fecha Requerida' %}
+              <th><input type="text" class="form-control form-control-sm" placeholder="Filtrar..." onkeyup="filtrarTabla({{ forloop.counter0 }})"></th>
+              <th><input type="text" class="form-control form-control-sm" placeholder="Filtrar..." onkeyup="filtrarTabla({{ forloop.counter0|add:1 }})"></th>
+              <th><input type="text" class="form-control form-control-sm" placeholder="Filtrar..." onkeyup="filtrarTabla({{ forloop.counter0|add:2 }})"></th>
+              <th><input type="text" class="form-control form-control-sm" placeholder="Filtrar..." onkeyup="filtrarTabla({{ forloop.counter0|add:3 }})"></th>
+            {% elif col != 'Fecha Entrega Planta' and col != 'Fecha Estimado Fin' and col != 'Fecha FULL' and col != 'Fecha FLP' and col != 'Fecha FEF' %}
+              <th><input type="text" class="form-control form-control-sm" placeholder="Filtrar..." onkeyup="filtrarTabla({{ forloop.counter0 }})"></th>
+            {% endif %}
+          {% endfor %}
+          {% if perms.can_view_history %}
+            <th></th>
+          {% endif %}
+        </tr>
       </thead>
+
       <tbody>
         {% for row in registros %}
           <tr>
@@ -38,69 +60,63 @@
                 <td class="text-nowrap">{{ row|get_item:col }}</td>
               {% elif col == 'Fecha Requerida' %}
                 <td class="text-nowrap">{{ row|get_item:col }}</td>
-                
+
                 <!-- FULL -->
                 {% if perms.can_edit_full %}
-                  <td
-                    hx-put="{% url 'actualizar_fecha' row|get_item:'PID' 'FULL' %}"
-                    hx-include="closest td"
-                    hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
-                    hx-trigger="change"
-                    hx-swap="none"
-                  >
+                  <td hx-put="{% url 'actualizar_fecha' row|get_item:'PID' 'FULL' %}"
+                      hx-include="closest td"
+                      hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+                      hx-trigger="change"
+                      hx-swap="none">
                     <input type="date"
                            name="fecha"
                            value="{{ row|get_item:'Fecha FULL'|date:'Y-m-d' }}"
                            class="form-control form-control-sm w-100">
                   </td>
                 {% else %}
-                  <td class="text-nowrap">
-                    {{ row|get_item:'Fecha FULL'|default:"—" }}
-                  </td>
+                  <td class="text-nowrap">{{ row|get_item:'Fecha FULL'|default:"—" }}</td>
                 {% endif %}
-                
+
                 <!-- FLP -->
                 {% if perms.can_edit_flp %}
-                  <td
-                    hx-put="{% url 'actualizar_fecha' row|get_item:'PID' 'FLP' %}"
-                    hx-include="closest td"
-                    hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
-                    hx-trigger="change"
-                    hx-swap="none"
-                  >
+                  <td hx-put="{% url 'actualizar_fecha' row|get_item:'PID' 'FLP' %}"
+                      hx-include="closest td"
+                      hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+                      hx-trigger="change"
+                      hx-swap="none">
                     <input type="date"
                            name="fecha"
                            value="{{ row|get_item:'Fecha FLP'|date:'Y-m-d' }}"
                            class="form-control form-control-sm w-100">
                   </td>
                 {% else %}
-                  <td class="text-nowrap">
-                    {{ row|get_item:'Fecha FLP'|default:"—" }}
-                  </td>
+                  <td class="text-nowrap">{{ row|get_item:'Fecha FLP'|default:"—" }}</td>
                 {% endif %}
 
                 <!-- FEF -->
                 {% if perms.can_edit_fef %}
-                  <td
-                    hx-put="{% url 'actualizar_fecha' row|get_item:'PID' 'FEF' %}"
-                    hx-include="closest td"
-                    hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
-                    hx-trigger="change"
-                    hx-swap="none"
-                  >
+                  <td hx-put="{% url 'actualizar_fecha' row|get_item:'PID' 'FEF' %}"
+                      hx-include="closest td"
+                      hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+                      hx-trigger="change"
+                      hx-swap="none">
                     <input type="date"
                            name="fecha"
                            value="{{ row|get_item:'Fecha FEF'|date:'Y-m-d' }}"
                            class="form-control form-control-sm w-100">
                   </td>
                 {% else %}
-                  <td class="text-nowrap">
-                    {{ row|get_item:'Fecha FEF'|default:"—" }}
-                  </td>
+                  <td class="text-nowrap">{{ row|get_item:'Fecha FEF'|default:"—" }}</td>
                 {% endif %}
 
               {% elif col != 'Fecha Entrega Planta' and col != 'Fecha Estimado Fin' and col != 'Fecha FULL' and col != 'Fecha FLP' and col != 'Fecha FEF' %}
-                <td class="text-nowrap">{{ row|get_item:col }}</td>
+                <td class="text-nowrap">
+                  {% if 'valor' in col|slugify %}
+                    $ {{ row|get_item:col|format_miles }}
+                  {% else %}
+                    {{ row|get_item:col }}
+                  {% endif %}
+                </td>
               {% endif %}
             {% endfor %}
 
@@ -131,4 +147,38 @@
     </div>
   </div>
 </div>
+
+<!-- Filtro Script -->
+<script>
+function filtrarTabla(colIndex) {
+  const input = event.target;
+  const filtro = input.value.toLowerCase();
+  const tabla = document.getElementById('tablaPVO');
+  const filas = tabla.getElementsByTagName('tbody')[0].getElementsByTagName('tr');
+
+  for (let i = 0; i < filas.length; i++) {
+    const celdas = filas[i].getElementsByTagName('td');
+    const celda = celdas[colIndex];
+    if (celda) {
+      const texto = celda.textContent || celda.innerText;
+      filas[i].style.display = texto.toLowerCase().includes(filtro) ? '' : 'none';
+    }
+  }
+}
+</script>
+
+<!--DataTables: ordenamiento -->
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
+<script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+<script>
+  $(document).ready(function () {
+    $('#tablaPVO').DataTable({
+      ordering: true,
+      paging: false,
+      info: false,
+      searching: false
+    });
+  });
+</script>
 {% endblock %}

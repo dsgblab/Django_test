@@ -16,15 +16,23 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path, include
-from django.contrib.auth import views as auth_views
 from django.shortcuts import redirect
+from myproject import custom_two_factor_urls
+from two_factor.urls import urlpatterns as tf_urls  
+from tableapp.views import login_redirect_view  
+from two_factor.views import LoginView
 
 urlpatterns = [
+    path('', include(tf_urls)), 
+
+    path('account/', include('myproject.custom_two_factor_urls')), 
+
     path('admin/', admin.site.urls),
     path('', include('tableapp.urls')),
-    path('', lambda request: redirect('table1_list'), name='home'),  # 👈 Add this
-    path('login/', auth_views.LoginView.as_view(template_name='tableapp/login.html'), name='login'),
-    path('logout/', auth_views.LogoutView.as_view(), name='logout'),
-]
 
+    path('', lambda request: redirect('dashboard'), name='home'), 
+    path('postlogin/', login_redirect_view, name='postlogin'), 
+    path('account/login-redirect/', login_redirect_view, name='login_redirect'),
+    path('ingresar/', LoginView.as_view(), name='login'),  # global alias 
+]
 

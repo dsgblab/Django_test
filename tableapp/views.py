@@ -11,6 +11,11 @@ from django.shortcuts import render, get_object_or_404
 from .models import PvoRegistro
 from django.contrib.auth.decorators import login_required
 from simple_history.utils import update_change_reason
+from two_factor.views import SetupView
+from django.shortcuts import redirect
+from django_otp.plugins.otp_totp.models import TOTPDevice
+
+
 
 
 
@@ -358,8 +363,11 @@ def pvo_historial_modal(request, pid):
 
     campos_visibles = [
         field.name for field in registro.history.model._meta.fields
-        if field.name not in ('id', 'history_id', 'history_date', 'history_user',
-                              'history_type', 'history_change_reason', 'creado_por', 'fecha_creacion')
+        if field.name not in (
+            'id', 'history_id', 'history_date', 'history_user',
+            'history_type', 'history_change_reason',
+            'creado_por', 'fecha_creacion'
+        )
     ]
 
     for h in registro.history.all().order_by('-history_date'):
@@ -374,6 +382,7 @@ def pvo_historial_modal(request, pid):
                         'old': old,
                         'new': new
                     })
+        
         if cambios_reales:
             historico.append({
                 'history': h,
@@ -384,3 +393,16 @@ def pvo_historial_modal(request, pid):
         'registro': registro,
         'historico': historico,
     })
+
+@login_required
+def login_redirect_view(request):
+    user = request.user
+    if not TOTPDevice.objects.filter(user=user, confirmed=True).exists():
+        return redirect('/account/two_factor/setup/')
+    
+    return redirect('dashboard')
+
+
+class CustomSetupView(SetupView):
+    def done(self, form_list, **kwargs):
+        return redirect('dashboard') 
