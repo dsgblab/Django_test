@@ -9,9 +9,13 @@ WORKDIR /app
 
 # Install build dependencies and system packages
 RUN apt-get update && apt-get install -y \
-    curl gnupg2 apt-transport-https \
-    build-essential gcc g++ \
+    curl \
+    apt-transport-https \
+    build-essential \
+    gcc \
+    g++ \
     locales \
+    gnupg \
     && rm -rf /var/lib/apt/lists/*
 
 # Set up locale
@@ -20,17 +24,17 @@ ENV LANG=en_US.UTF-8
 ENV LANGUAGE=en_US:en
 ENV LC_ALL=en_US.UTF-8
 
-# Install Microsoft SQL Server ODBC Driver - trying Ubuntu repo as fallback
-RUN curl -sSL https://packages.microsoft.com/keys/microsoft.asc | apt-key add - \
-    && curl -sSL https://packages.microsoft.com/config/ubuntu/20.04/prod.list > /etc/apt/sources.list.d/mssql-release.list \
+# Install Microsoft SQL Server ODBC Driver using modern approach
+RUN mkdir -p /etc/apt/keyrings \
+    && curl -sSL https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor -o /etc/apt/keyrings/microsoft.gpg \
+    && echo "deb [signed-by=/etc/apt/keyrings/microsoft.gpg] https://packages.microsoft.com/ubuntu/20.04/prod focal main" > /etc/apt/sources.list.d/mssql-release.list \
     && apt-get update \
-    && echo "Available mssql packages:" \
-    && apt-cache search mssql \
-    && ACCEPT_EULA=Y apt-get install -y msodbcsql17 \
-    && ACCEPT_EULA=Y apt-get install -y mssql-tools \
+    && ACCEPT_EULA=Y apt-get install -y \
+        msodbcsql17 \
+        mssql-tools \
+        unixodbc-dev \
+        libgssapi-krb5-2 \
     && echo 'export PATH="$PATH:/opt/mssql-tools/bin"' >> ~/.bashrc \
-    && apt-get install -y unixodbc-dev \
-    && apt-get install -y libgssapi-krb5-2 \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
