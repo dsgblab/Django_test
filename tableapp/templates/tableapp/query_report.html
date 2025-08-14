@@ -56,9 +56,11 @@
           <tr>
             {% for col in columns %}
               {% if col == 'Fecha Pedido' %}
-                <td class="text-nowrap">{{ row|get_item:col }}</td>
+                <td class="text-nowrap" data-order="{{ row|get_item:col|date:'Y-m-d' }}">{{ row|get_item:col|date:"d/m/y" }}</td>
               {% elif col == 'Fecha Requerida' %}
-                <td class="text-nowrap">{{ row|get_item:col }}</td>
+                <td class="text-nowrap" data-order="{{ row|get_item:col|date:'Y-m-d' }}">{{ row|get_item:col|date:"d/m/y" }}</td>
+              {% elif col == 'Fecha Despacho' %}
+                <td class="text-nowrap" data-order="{{ row|get_item:col|date:'Y-m-d' }}">{{ row|get_item:col|date:"d/m/y" }}</td>
 
                 <!-- FULL -->
                 {% if perms.can_edit_full %}
