@@ -6,7 +6,6 @@ from .views import dashboard
 urlpatterns = [
     path('', dashboard, name='dashboard'),
 
-
     # Reportes 
     path('query-report/', views.query_report_view, name='query_report_view'), 
 
@@ -18,7 +17,12 @@ urlpatterns = [
     path('pvo/create/', views.pvo_create, name='pvo_create'),
     path('pvo/edit/<str:pk>/', views.pvo_edit, name='pvo_edit'),
 
+    # Actualizar fechas (HTMX)
     path('actualizar-fecha/<str:pid>/<str:campo>/', views.actualizar_fecha, name='actualizar_fecha'),
 
+    # Historial modal
     path('pvo/historial/<str:pid>/', views.pvo_historial_modal, name='pvo_historial_modal'),
+
+    # <<< NUEVO: endpoint para actualizar config FP por código de producto >>>
+    path('actualizar-fp/<str:codigo_producto>/<str:campo>/', views.actualizar_fp, name='actualizar_fp'),
 ]

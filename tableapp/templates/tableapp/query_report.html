@@ -12,17 +12,24 @@
   <div class="table-responsive" style="max-height: 75vh;">
     <table class="table table-hover table-bordered align-middle text-center" id="tablaPVO">
       <thead class="sticky-top" style="background-color: #1e293b; color: #fff;">
-        <!-- Encabezados -->
+
+        {# ===== Encabezados ===== #}
         <tr>
           {% for col in columns %}
             {% if col == 'Fecha Pedido' %}
               <th class="text-nowrap">{{ col }}</th>
+
             {% elif col == 'Fecha Requerida' %}
               <th class="text-nowrap">{{ col }}</th>
               <th class="text-nowrap">FULL<br><small>(último insumo)</small></th>
               <th class="text-nowrap">FLP<br><small>(liberación planta)</small></th>
+              <th class="text-nowrap">FIF<br><small>(inicio fab.)</small></th>
               <th class="text-nowrap">FEF<br><small>(entrega final)</small></th>
-            {% elif col != 'Fecha Entrega Planta' and col != 'Fecha Estimado Fin' and col != 'Fecha FULL' and col != 'Fecha FLP' and col != 'Fecha FEF' %}
+
+            {% elif col in fp_cols %}
+              <th class="text-nowrap fp-col">{{ col }}</th>
+
+            {% elif col not in skip_cols and col != 'Fecha Entrega Planta' and col != 'Fecha Estimado Fin' and col != 'Fecha FULL' and col != 'Fecha FLP' and col != 'Fecha FIF' and col != 'Fecha FEF' %}
               <th class="text-nowrap">{{ col }}</th>
             {% endif %}
           {% endfor %}
@@ -31,17 +38,23 @@
           {% endif %}
         </tr>
 
-        <!-- Filtros -->
+        {# ===== Filtros ===== #}
         <tr>
           {% for col in columns %}
             {% if col == 'Fecha Pedido' %}
               <th><input type="text" class="form-control form-control-sm" placeholder="Filtrar..." onkeyup="filtrarTabla({{ forloop.counter0 }})"></th>
+
             {% elif col == 'Fecha Requerida' %}
               <th><input type="text" class="form-control form-control-sm" placeholder="Filtrar..." onkeyup="filtrarTabla({{ forloop.counter0 }})"></th>
               <th><input type="text" class="form-control form-control-sm" placeholder="Filtrar..." onkeyup="filtrarTabla({{ forloop.counter0|add:1 }})"></th>
               <th><input type="text" class="form-control form-control-sm" placeholder="Filtrar..." onkeyup="filtrarTabla({{ forloop.counter0|add:2 }})"></th>
               <th><input type="text" class="form-control form-control-sm" placeholder="Filtrar..." onkeyup="filtrarTabla({{ forloop.counter0|add:3 }})"></th>
-            {% elif col != 'Fecha Entrega Planta' and col != 'Fecha Estimado Fin' and col != 'Fecha FULL' and col != 'Fecha FLP' and col != 'Fecha FEF' %}
+              <th><input type="text" class="form-control form-control-sm" placeholder="Filtrar..." onkeyup="filtrarTabla({{ forloop.counter0|add:4 }})"></th>
+
+            {% elif col in fp_cols %}
+              <th class="fp-col"><input type="text" class="form-control form-control-sm" placeholder="Filtrar..." onkeyup="filtrarTabla({{ forloop.counter0 }})"></th>
+
+            {% elif col not in skip_cols and col != 'Fecha Entrega Planta' and col != 'Fecha Estimado Fin' and col != 'Fecha FULL' and col != 'Fecha FLP' and col != 'Fecha FIF' and col != 'Fecha FEF' %}
               <th><input type="text" class="form-control form-control-sm" placeholder="Filtrar..." onkeyup="filtrarTabla({{ forloop.counter0 }})"></th>
             {% endif %}
           {% endfor %}
@@ -55,20 +68,22 @@
         {% for row in registros %}
           <tr>
             {% for col in columns %}
+
+              {# ===== Fechas principales con orden correcto ===== #}
               {% if col == 'Fecha Pedido' %}
                 <td class="text-nowrap" data-order="{{ row|get_item:col|date:'Y-m-d' }}">{{ row|get_item:col|date:"d/m/y" }}</td>
+
               {% elif col == 'Fecha Requerida' %}
                 <td class="text-nowrap" data-order="{{ row|get_item:col|date:'Y-m-d' }}">{{ row|get_item:col|date:"d/m/y" }}</td>
-            
-                <!-- FULL -->
+
+                {# === FULL === #}
                 {% if perms.can_edit_full %}
                   <td hx-put="{% url 'actualizar_fecha' row|get_item:'PID' 'FULL' %}"
                       hx-include="closest td"
                       hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
                       hx-trigger="change"
                       hx-swap="none">
-                    <input type="date"
-                           name="fecha"
+                    <input type="date" name="fecha"
                            value="{{ row|get_item:'Fecha FULL'|date:'Y-m-d' }}"
                            class="form-control form-control-sm w-100">
                   </td>
@@ -76,15 +91,14 @@
                   <td class="text-nowrap">{{ row|get_item:'Fecha FULL'|default:"—" }}</td>
                 {% endif %}
 
-                <!-- FLP -->
+                {# === FLP === #}
                 {% if perms.can_edit_flp %}
                   <td hx-put="{% url 'actualizar_fecha' row|get_item:'PID' 'FLP' %}"
                       hx-include="closest td"
                       hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
                       hx-trigger="change"
                       hx-swap="none">
-                    <input type="date"
-                           name="fecha"
+                    <input type="date" name="fecha"
                            value="{{ row|get_item:'Fecha FLP'|date:'Y-m-d' }}"
                            class="form-control form-control-sm w-100">
                   </td>
@@ -92,26 +106,179 @@
                   <td class="text-nowrap">{{ row|get_item:'Fecha FLP'|default:"—" }}</td>
                 {% endif %}
 
-                <!-- FEF -->
+                {# === FIF (tu columna nueva) === #}
+                {% if perms.can_edit_fif %}
+                  <td hx-put="{% url 'actualizar_fecha' row|get_item:'PID' 'FIF' %}"
+                      hx-include="closest td"
+                      hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+                      hx-trigger="change"
+                      hx-swap="none">
+                    <input type="date" name="fecha"
+                           value="{{ row|get_item:'Fecha FIF'|date:'Y-m-d' }}"
+                           class="form-control form-control-sm w-100">
+                  </td>
+                {% else %}
+                  <td class="text-nowrap">{{ row|get_item:'Fecha FIF'|default:"—" }}</td>
+                {% endif %}
+
+                {# === FEF === #}
                 {% if perms.can_edit_fef %}
                   <td hx-put="{% url 'actualizar_fecha' row|get_item:'PID' 'FEF' %}"
                       hx-include="closest td"
                       hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
                       hx-trigger="change"
                       hx-swap="none">
-                    <input type="date"
-                           name="fecha"
+                    <input type="date" name="fecha"
                            value="{{ row|get_item:'Fecha FEF'|date:'Y-m-d' }}"
                            class="form-control form-control-sm w-100">
                   </td>
                 {% else %}
                   <td class="text-nowrap">{{ row|get_item:'Fecha FEF'|default:"—" }}</td>
                 {% endif %}
-            
-                {% elif col == 'Fecha Despacho' %}
-                  <td class="text-nowrap" data-order="{{ row|get_item:col|date:'Y-m-d' }}">{{ row|get_item:col|date:"d/m/y" }}</td>
 
-              {% elif col != 'Fecha Entrega Planta' and col != 'Fecha Estimado Fin' and col != 'Fecha FULL' and col != 'Fecha FLP' and col != 'Fecha FEF' %}
+              {% elif col == 'Fecha Despacho' %}
+                <td class="text-nowrap" data-order="{{ row|get_item:col|date:'Y-m-d' }}">{{ row|get_item:col|date:"d/m/y" }}</td>
+
+              {# ===== Campos FP editables (tus mejoras) ===== #}
+              {% elif col == 'ESTADO FP' %}
+                <td class="fp-col">
+                  {% if perms.can_edit_dates %}
+                    <select name="valor" class="form-control form-control-sm w-100"
+                            hx-put="{% url 'actualizar_fp' row|get_item:'Codigo Producto' 'estado_fp' %}"
+                            hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+                            hx-vals='{"pid":"{{ row|get_item:"PID" }}"}'
+                            hx-trigger="change" hx-swap="none">
+                      <option value="">—</option>
+                      {% for opt in catalogo.estados_fp %}
+                        <option value="{{ opt }}" {% if opt == row|get_item:'ESTADO FP' %}selected{% endif %}>{{ opt }}</option>
+                      {% endfor %}
+                    </select>
+                  {% else %}
+                    {{ row|get_item:'ESTADO FP'|default:"—" }}
+                  {% endif %}
+                </td>
+
+              {% elif col == 'FAMILIA' %}
+                <td class="fp-col">
+                  {% if perms.can_edit_dates %}
+                    <select name="valor" class="form-control form-control-sm w-100"
+                            hx-put="{% url 'actualizar_fp' row|get_item:'Codigo Producto' 'familia' %}"
+                            hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+                            hx-vals='{"pid":"{{ row|get_item:"PID" }}"}'
+                            hx-trigger="change" hx-swap="none">
+                      <option value="">—</option>
+                      {% for opt in catalogo.familias %}
+                        <option value="{{ opt }}" {% if opt == row|get_item:'FAMILIA' %}selected{% endif %}>{{ opt }}</option>
+                      {% endfor %}
+                    </select>
+                  {% else %}
+                    {{ row|get_item:'FAMILIA'|default:"—" }}
+                  {% endif %}
+                </td>
+
+              {% elif col == 'TIPO' %}
+                <td class="fp-col">
+                  {% if perms.can_edit_dates %}
+                    <select name="valor" class="form-control form-control-sm w-100"
+                            hx-put="{% url 'actualizar_fp' row|get_item:'Codigo Producto' 'tipo' %}"
+                            hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+                            hx-vals='{"pid":"{{ row|get_item:"PID" }}"}'
+                            hx-trigger="change" hx-swap="none">
+                      <option value="">—</option>
+                      {% for opt in catalogo.tipos %}
+                        <option value="{{ opt }}" {% if opt == row|get_item:'TIPO' %}selected{% endif %}>{{ opt }}</option>
+                      {% endfor %}
+                    </select>
+                  {% else %}
+                    {{ row|get_item:'TIPO'|default:"—" }}
+                  {% endif %}
+                </td>
+
+              {% elif col == 'PLANTA' %}
+                <td class="fp-col">
+                  {% if perms.can_edit_dates %}
+                    <select name="valor" class="form-control form-control-sm w-100"
+                            hx-put="{% url 'actualizar_fp' row|get_item:'Codigo Producto' 'planta' %}"
+                            hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+                            hx-vals='{"pid":"{{ row|get_item:"PID" }}"}'
+                            hx-trigger="change" hx-swap="none">
+                      <option value="">—</option>
+                      {% for opt in catalogo.plantas %}
+                        <option value="{{ opt }}" {% if opt == row|get_item:'PLANTA' %}selected{% endif %}>{{ opt }}</option>
+                      {% endfor %}
+                    </select>
+                  {% else %}
+                    {{ row|get_item:'PLANTA'|default:"—" }}
+                  {% endif %}
+                </td>
+
+              {% elif col == 'TIEMPO FP' %}
+                <td class="fp-col">
+                  {% if perms.can_edit_dates %}
+                    <input type="number" step="1" name="valor" autocomplete="off"
+                           value="{{ row|get_item:'TIEMPO FP'|floatformat:'0' }}"
+                           class="form-control form-control-sm w-100"
+                           hx-put="{% url 'actualizar_fp' row|get_item:'Codigo Producto' 'tiempo_fp_horas' %}"
+                           hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+                           hx-vals='{"pid":"{{ row|get_item:"PID" }}"}'
+                           hx-trigger="change" hx-swap="none"
+                           onchange="this.setAttribute('value', this.value)">
+                  {% else %}
+                    {{ row|get_item:'TIEMPO FP'|floatformat:'0'|default:"—" }}
+                  {% endif %}
+                </td>
+
+              {% elif col == 'BATCH' %}
+                <td class="fp-col">
+                  {% if perms.can_edit_dates %}
+                    <input type="number" step="1" name="valor" autocomplete="off"
+                           value="{{ row|get_item:'BATCH' }}"
+                           class="form-control form-control-sm w-100"
+                           onkeydown="if(event.key==='Enter'){event.preventDefault();}"
+                           onchange="this.setAttribute('value', this.value)"
+                           hx-put="{% url 'actualizar_fp' row|get_item:'Codigo Producto' 'batch' %}"
+                           hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+                           hx-vals='{"pid":"{{ row|get_item:"PID" }}"}'
+                           hx-trigger="change" hx-swap="none">
+                  {% else %}
+                    {{ row|get_item:'BATCH'|default:"—" }}
+                  {% endif %}
+                </td>
+
+              {% elif col == 'TAMANO_LOTE' %}
+                <td class="fp-col">
+                  {% if perms.can_edit_dates %}
+                    <input type="number" step="1" name="valor" autocomplete="off"
+                           value="{{ row|get_item:'TAMANO_LOTE' }}"
+                           class="form-control form-control-sm w-100"
+                           onchange="this.setAttribute('value', this.value)"
+                           hx-put="{% url 'actualizar_fp' row|get_item:'Codigo Producto' 'tamano_lote' %}"
+                           hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+                           hx-vals='{"pid":"{{ row|get_item:"PID" }}"}'
+                           hx-trigger="change" hx-swap="none">
+                  {% else %}
+                    {{ row|get_item:'TAMANO_LOTE'|default:"—" }}
+                  {% endif %}
+                </td>
+
+              {% elif col == 'PERSONAL_FASE' %}
+                <td class="fp-col">
+                  {% if perms.can_edit_dates %}
+                    <input type="number" step="1" name="valor" autocomplete="off"
+                           value="{{ row|get_item:'PERSONAL_FASE' }}"
+                           class="form-control form-control-sm w-100"
+                           onchange="this.setAttribute('value', this.value)"
+                           hx-put="{% url 'actualizar_fp' row|get_item:'Codigo Producto' 'personal_fase' %}"
+                           hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+                           hx-vals='{"pid":"{{ row|get_item:"PID" }}"}'
+                           hx-trigger="change" hx-swap="none">
+                  {% else %}
+                    {{ row|get_item:'PERSONAL_FASE'|default:"—" }}
+                  {% endif %}
+                </td>
+
+              {# ===== Resto de columnas visibles ===== #}
+              {% elif col not in skip_cols and col != 'Fecha Entrega Planta' and col != 'Fecha Estimado Fin' and col != 'Fecha FULL' and col != 'Fecha FLP' and col != 'Fecha FIF' and col != 'Fecha FEF' %}
                 <td class="text-nowrap">
                   {% if 'valor' in col|slugify %}
                     $ {{ row|get_item:col|format_miles }}
@@ -120,6 +287,7 @@
                   {% endif %}
                 </td>
               {% endif %}
+
             {% endfor %}
 
             {% if perms.can_view_history %}
@@ -141,16 +309,14 @@
   </div>
 </div>
 
-<!-- Modal -->
+{# ===== Modal ===== #}
 <div class="modal fade" id="modalHistorial" tabindex="-1" aria-labelledby="modalHistorialLabel" aria-hidden="true">
   <div class="modal-dialog modal-dialog-scrollable">
-    <div class="modal-content">
-      <!-- Aquí carga HTMX -->
-    </div>
+    <div class="modal-content"></div>
   </div>
 </div>
 
-<!-- Filtro Script -->
+{# ===== Filtro simple por columna (versión repo) ===== #}
 <script>
 function filtrarTabla(colIndex) {
   const input = event.target;
@@ -169,7 +335,7 @@ function filtrarTabla(colIndex) {
 }
 </script>
 
-<!--DataTables: ordenamiento -->
+{# ===== DataTables (ordenamiento) ===== #}
 <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
 <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
 <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
@@ -183,4 +349,10 @@ function filtrarTabla(colIndex) {
     });
   });
 </script>
+
+<style>
+  /* Más espacio para columnas de configuración FP */
+  th.fp-col, td.fp-col { min-width: 160px; }
+  td.fp-col select, td.fp-col input { min-width: 150px; }
+</style>
 {% endblock %}
