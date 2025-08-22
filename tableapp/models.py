@@ -138,6 +138,7 @@ class FPConfig(models.Model):
     planta          = models.CharField(max_length=50, null=True, blank=True)
     tamano_lote     = models.CharField(max_length=50, null=True, blank=True)
     personal_fase   = models.IntegerField(null=True, blank=True)
+    capacidad       = models.IntegerField(null=True, blank=True)  # gramaje/capacidad en la unidad que uses
     updated_at      = models.DateTimeField(auto_now=True)
 
     class Meta:

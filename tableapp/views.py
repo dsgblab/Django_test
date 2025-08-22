@@ -19,8 +19,6 @@ from .models import TablePermission, PvoRegistro, FPConfig, FPCatalogo
 from decimal import Decimal
 
 
-
-
 def check_perm(user, table, perm):
     try:
         perms = TablePermission.objects.get(user=user, table=table)
@@ -38,7 +36,7 @@ def get_perm_dict(user, table):
         'can_edit_full': check_perm(user, table, 'edit_full'),
         'can_edit_flp': check_perm(user, table, 'edit_flp'),
         'can_edit_fef': check_perm(user, table, 'edit_fef'),
-        'can_view_history': check_perm(user, table, 'view_history'),  
+        'can_view_history': check_perm(user, table, 'view_history'),
     }
 
 
@@ -53,14 +51,11 @@ def dashboard(request):
     })
 
 
-
 @login_required
 def query_report_view(request):
     if not check_perm(request.user, 'report', 'read'):
-
-        
         return render(request, 'tableapp/no_permission.html')
-    
+
     permisos = {
         'can_edit_dates': check_perm(request.user, 'edit_dates', 'edit'),
         'can_edit_full':  check_perm(request.user, 'edit_dates', 'edit_full'),
@@ -70,10 +65,10 @@ def query_report_view(request):
         'can_view_history': check_perm(request.user, 'report', 'view_history'),
     }
 
-
     registros_finales = []
 
-    # 1) Consulta principal (JOIN a FP con COLLATE para resolver conflicto)
+    # 1) Consulta principal
+    
     with connections['ssf_genericos'].cursor() as cursor:
         cursor.execute("""
             SELECT
@@ -87,10 +82,12 @@ def query_report_view(request):
                 in_pedidencab.peefechelab AS [Fecha Pedido],
                 in_pediddetal.pedfechrequ AS [Fecha Requerida],
                 F.[Fecha Despacho],
+
                 CASE
                     WHEN in_pediddetal.eobnombre IN ('Cerrado', 'Completo') THEN 0
                     ELSE DATEDIFF(DAY, GETDATE(), Op.[Fecha Estimado Fin])
                 END AS [Dias de Retraso],
+
                 CASE
                     WHEN in_pediddetal.eobnombre = 'Cerrado' THEN 'Cerrado'
                     WHEN in_pediddetal.eobnombre = 'Completo' THEN 'Despacho Completo'
@@ -99,16 +96,34 @@ def query_report_view(request):
                     ELSE 'X'
                 END AS [Estado Pedido],
 
-                -- ===== columnas de configuración FP (entre Estado Pedido y Cantidad Pedida) =====
-                FP.estado_fp        AS [ESTADO FP],
-                FP.tiempo_fp_horas  AS [TIEMPO FP],
+                -- ===== Configuración FP (orden requerido) =====
                 FP.familia          AS [FAMILIA],
                 FP.tipo             AS [TIPO],
-                FP.batch            AS [BATCH],
-                FP.planta           AS [PLANTA],
                 FP.tamano_lote      AS [TAMANO_LOTE],
+
+                -- GRAMAJE (Capacidad) calculado desde V_SIS_BI_Productos.Producto Largo
+                CASE 
+                  WHEN CHARINDEX('X', Prod.[Producto Largo]) > 0 THEN
+                    CAST(SUBSTRING(
+                      Prod.[Producto Largo],
+                      PATINDEX('%[0-9]%', SUBSTRING(Prod.[Producto Largo], CHARINDEX('X', Prod.[Producto Largo]) + 1, LEN(Prod.[Producto Largo])))
+                        + CHARINDEX('X', Prod.[Producto Largo]),
+                      PATINDEX('%[^0-9]%', SUBSTRING(
+                        Prod.[Producto Largo],
+                        PATINDEX('%[0-9]%', SUBSTRING(Prod.[Producto Largo], CHARINDEX('X', Prod.[Producto Largo]) + 1, LEN(Prod.[Producto Largo])))
+                          + CHARINDEX('X', Prod.[Producto Largo]),
+                        LEN(Prod.[Producto Largo])
+                      ) + 'X') - 1
+                    ) AS INT)
+                  ELSE NULL
+                END AS [GRAMAJE],
+
+                FP.batch            AS [BATCH],
+                FP.estado_fp        AS [ESTADO FP],
+                FP.tiempo_fp_horas  AS [TIEMPO FP],
                 FP.personal_fase    AS [PERSONAL_FASE],
-                -- ===============================================================================
+                FP.planta           AS [PLANTA],
+                -- ================================================
 
                 in_pediddetal.pedcantpediump AS [Cantidad Pedida],
                 in_pediddetal.pedcantpediump * in_pediddetal.pedprecunit AS [Valor Pedido],
@@ -122,6 +137,8 @@ def query_report_view(request):
                 ON in_pediddetal.pedconsecutivo = in_pedidencab.peeconsecutivo
                AND in_pediddetal.pedtipocons   = in_pedidencab.peetipocons
                AND in_pediddetal.pedcompania   = in_pedidencab.peecompania
+
+            -- Última OP
             LEFT OUTER JOIN (
                 SELECT
                     pd_ordenproceso.orpcompania AS Compania,
@@ -150,6 +167,8 @@ def query_report_view(request):
                 ON in_pediddetal.pedcompania  = Op.Compania
                AND in_pediddetal.pedconsecutivo = Op.Pedido
                AND in_pediddetal.pedsecuencia  = Op.[Secuencia Pedido]
+
+            -- Última fecha de despacho
             LEFT OUTER JOIN (
                 SELECT
                     MAX(in_movimientos.movfechmovi) AS [Fecha Despacho],
@@ -160,9 +179,14 @@ def query_report_view(request):
             ) F
                 ON in_pedidencab.peeconsecutivo + in_pedidencab.peecompania + in_pediddetal.pedcodiitem = F.ID
 
-            -- JOIN a la config de FP por código de producto (ajustado con COLLATE)
+            -- Configuración FP
             LEFT OUTER JOIN django_test_db.dbo.tableapp_fpconfig AS FP WITH (NOLOCK)
                 ON FP.codigo_producto COLLATE Modern_Spanish_CI_AS = in_pediddetal.pedcodiitem
+
+            -- Productos (para calcular Capacidad/GRAMAJE)
+            LEFT OUTER JOIN ssf_genericos.dbo.V_SIS_BI_Productos AS Prod
+                ON Prod.[Codigo Producto] = in_pediddetal.pedcodiitem
+               AND Prod.Estado = 'Activo'
 
             INNER JOIN ssf_genericos.dbo.in_items
                 ON in_pediddetal.pedcodiitem  = in_items.itecodigo
@@ -210,11 +234,12 @@ def query_report_view(request):
         for row in fechas
     }
 
-    # 3) Fusión
+    # 3) Fusión + (opcional) sincronizar FPConfig.capacidad con GRAMAJE calculado
     for row in rows:
         registro = dict(zip(columns, row))
         pid_base = str(registro['PID']).strip()
 
+        # Fechas locales tienen prioridad si existen
         fechas_extra = fechas_dict.get(pid_base, {})
         registro['Fecha FULL'] = fechas_extra.get('FULL') or registro.get('Fecha FULL')
         registro['Fecha FLP']  = fechas_extra.get('FLP')  or registro.get('Fecha FLP')
@@ -222,6 +247,19 @@ def query_report_view(request):
         registro['Fecha FEF']  = fechas_extra.get('FEF')  or registro.get('Fecha FEF')
         registro['Actualizado por'] = fechas_extra.get('ACTUALIZADO_POR')
         registro['Última Fecha']    = fechas_extra.get('ACTUALIZADO_EN')
+
+        # Sincroniza FPConfig.capacidad con el GRAMAJE calculado
+        try:
+            codigo = registro.get('Codigo Producto')
+            gramaje = registro.get('GRAMAJE')
+            if codigo and gramaje is not None:
+                fp, _ = FPConfig.objects.get_or_create(codigo_producto=codigo)
+                if fp.capacidad != gramaje:
+                    fp.capacidad = gramaje
+                    fp.save(update_fields=['capacidad'])
+        except Exception:
+            # No interrumpimos el reporte por esto
+            pass
 
         registros_finales.append(registro)
 
@@ -233,12 +271,29 @@ def query_report_view(request):
         'Fecha FIF',
         'Fecha FEF',
     ]
-        # 4) Catálogo para combos
+
+    # 4) Catálogo para combos
+    # --- orden fijo para ESTADO FP ---
+    orden_fp = [
+        'DISPENSACION',
+        'PESAJE',
+        'FABRICACION',
+        'ENFRIAMIENTO',
+        'ENVASADO',
+        'ACONDICIONAMIENTO',
+        'EMBALAJE',
+        'DESPACHO',
+    ]
+    vals_estados = list(
+        FPCatalogo.objects.filter(grupo='ESTADO FP').values_list('valor', flat=True)
+    )
+    def _k(v):
+        u = (v or '').strip().upper()
+        return (orden_fp.index(u) if u in orden_fp else len(orden_fp), u)
+    estados_ordenados = sorted(vals_estados, key=_k)
+
     catalogo = {
-        'estados_fp': list(
-            FPCatalogo.objects.filter(grupo='ESTADO FP')
-            .values_list('valor', flat=True).order_by('valor')
-        ),
+        'estados_fp': estados_ordenados,  # <-- orden deseado
         'familias': list(
             FPCatalogo.objects.filter(grupo='FAMILIA')
             .values_list('valor', flat=True).order_by('valor')
@@ -253,7 +308,6 @@ def query_report_view(request):
         ),
     }
 
-
     return render(request, 'tableapp/query_report.html', {
         'registros': registros_finales,
         'columns': columns,
@@ -261,7 +315,6 @@ def query_report_view(request):
         'skip_cols': skip_cols,
         'catalogo': catalogo,
     })
-
 
 
 @login_required
@@ -333,9 +386,9 @@ def historial_pvo_view(request):
 def pvo_list(request):
     if not check_perm(request.user, 'report', 'read'):
         return render(request, 'tableapp/no_permission.html')
-    
+
     registros = PvoRegistro.objects.all()
-    perms = get_perm_dict(request.user, 'report')  
+    perms = get_perm_dict(request.user, 'report')
     return render(request, 'tableapp/pvo_list.html', {
         'registros': registros,
         'perms': perms
@@ -403,20 +456,18 @@ def actualizar_fecha(request, pid, campo):
 
             registro, created = PvoRegistro.objects.get_or_create(pid=pid)
 
-            # Asigna el usuario para simple_history
             update_change_reason(registro, f"{campo} actualizado por {request.user.username}")
-            registro._history_user = request.user  # Asegura que quede registrado
+            registro._history_user = request.user
 
             if campo == 'FULL':
                 registro.fecha_full = fecha_nueva or None
             elif campo == 'FLP':
                 registro.fecha_flp = datetime.strptime(fecha_nueva, '%Y-%m-%d') if fecha_nueva else None
-            elif campo == 'FIF': 
+            elif campo == 'FIF':
                 registro.fecha_fif = datetime.strptime(fecha_nueva, '%Y-%m-%d') if fecha_nueva else None
             elif campo == 'FEF':
                 registro.fecha_fef = datetime.strptime(fecha_nueva, '%Y-%m-%d') if fecha_nueva else None
 
-            #  Actualiza siempre quien y cuándo
             registro.creado_por = request.user
             registro.fecha_creacion = now()
 
@@ -457,7 +508,7 @@ def pvo_historial_modal(request, pid):
                         'old': old,
                         'new': new
                     })
-        
+
         if cambios_reales:
             historico.append({
                 'history': h,
@@ -469,19 +520,18 @@ def pvo_historial_modal(request, pid):
         'historico': historico,
     })
 
+
 @login_required
 def login_redirect_view(request):
     user = request.user
     if not TOTPDevice.objects.filter(user=user, confirmed=True).exists():
         return redirect('/account/two_factor/setup/')
-    
     return redirect('dashboard')
 
 
 class CustomSetupView(SetupView):
     def done(self, form_list, **kwargs):
-        return redirect('dashboard') 
-
+        return redirect('dashboard')
 
 
 @login_required
@@ -512,7 +562,6 @@ def actualizar_fp(request, codigo_producto, campo):
         if campo not in permitidos:
             return HttpResponse('Campo no permitido', status=400)
 
-        # --- normalización para FPConfig
         if valor == '':
             nuevo_valor = None
         elif campo == 'tiempo_fp_horas':
@@ -528,16 +577,13 @@ def actualizar_fp(request, codigo_producto, campo):
         else:
             nuevo_valor = valor
 
-        # Upsert en FPConfig
         fp, _ = FPConfig.objects.get_or_create(codigo_producto=codigo_producto)
         setattr(fp, campo, nuevo_valor)
         fp.save()
 
-        # Si vino PID, aqui la idea es reflejarlo en  pvoregistro
         if pid:
             reg, _ = PvoRegistro.objects.get_or_create(pid=pid)
 
-            # Mapa de fase -> columnas (F, T, P)
             fase_map = {
                 'DISPENSACION': ('f_dispensacion', 't_dispensacion', 'p_dispensacion'),
                 'PESAJE': ('f_pesaje', 't_pesaje', 'p_pesaje'),
@@ -549,18 +595,15 @@ def actualizar_fp(request, codigo_producto, campo):
                 'DESPACHO': ('f_despacho', 't_despacho', 'p_despacho'),
             }
 
-            # Copias directas a pvoregistro
             if campo in {'batch', 'planta', 'tamano_lote', 'familia', 'tipo'}:
                 setattr(reg, campo, nuevo_valor)
 
-            # Helper
             def parece_fecha(v):
                 if v is None:
                     return False
                 s = str(v)
                 return len(s) >= 10 and s[4] == '-' and s[7] == '-'
 
-            # Cuando cambia la fase -> F_* = nombre de la fase
             if campo == 'estado_fp':
                 fase = (valor or '').upper()
                 cols = fase_map.get(fase)
@@ -568,7 +611,6 @@ def actualizar_fp(request, codigo_producto, campo):
                     col_f, _, _ = cols
                     setattr(reg, col_f, fase)
 
-            # Tiempo / Personal -> T_* o P_* de la fase actual
             if campo in {'tiempo_fp_horas', 'personal_fase'}:
                 fase_actual = (fp.estado_fp or '').upper()
                 cols = fase_map.get(fase_actual)
@@ -576,7 +618,6 @@ def actualizar_fp(request, codigo_producto, campo):
                     return HttpResponse('Define primero ESTADO FP para esta fila.', status=400)
                 col_f, col_t, col_p = cols
 
-                # Además: si F_* está vacío o era una fecha vieja, lo dejo fijo al nombre de la fase
                 f_val = getattr(reg, col_f, None)
                 if not f_val or parece_fecha(f_val):
                     setattr(reg, col_f, fase_actual)
