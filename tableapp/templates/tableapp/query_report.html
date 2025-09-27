@@ -12,8 +12,6 @@
   <div class="table-responsive" style="max-height: 75vh;">
     <table class="table table-hover table-bordered align-middle text-center" id="tablaPVO">
       <thead class="sticky-top" style="background-color: #1e293b; color: #fff;">
-
-        {# ===== Encabezados ===== #}
         <tr>
           {% for col in columns %}
             {% if col == 'Fecha Pedido' %}
@@ -22,9 +20,12 @@
             {% elif col == 'Fecha Requerida' %}
               <th class="text-nowrap">{{ col }}</th>
               <th class="text-nowrap">FULL<br><small>(último insumo)</small></th>
+              <th class="text-nowrap">Obs FULL</th>
               <th class="text-nowrap">FLP<br><small>(liberación planta)</small></th>
+              <th class="text-nowrap">Obs FLP</th>
               <th class="text-nowrap">FIF<br><small>(inicio fab.)</small></th>
               <th class="text-nowrap">FEF<br><small>(entrega final)</small></th>
+              <th class="text-nowrap">Obs FEF</th>
 
             {% elif col in fp_cols %}
               <th class="text-nowrap fp-col">{{ col }}</th>
@@ -38,7 +39,6 @@
           {% endif %}
         </tr>
 
-        {# ===== Filtros ===== #}
         <tr>
           {% for col in columns %}
             {% if col == 'Fecha Pedido' %}
@@ -50,6 +50,9 @@
               <th><input type="text" class="form-control form-control-sm" placeholder="Filtrar..." onkeyup="filtrarTabla({{ forloop.counter0|add:2 }})"></th>
               <th><input type="text" class="form-control form-control-sm" placeholder="Filtrar..." onkeyup="filtrarTabla({{ forloop.counter0|add:3 }})"></th>
               <th><input type="text" class="form-control form-control-sm" placeholder="Filtrar..." onkeyup="filtrarTabla({{ forloop.counter0|add:4 }})"></th>
+              <th><input type="text" class="form-control form-control-sm" placeholder="Filtrar..." onkeyup="filtrarTabla({{ forloop.counter0|add:5 }})"></th>
+              <th><input type="text" class="form-control form-control-sm" placeholder="Filtrar..." onkeyup="filtrarTabla({{ forloop.counter0|add:6 }})"></th>
+              <th><input type="text" class="form-control form-control-sm" placeholder="Filtrar..." onkeyup="filtrarTabla({{ forloop.counter0|add:7 }})"></th>
 
             {% elif col in fp_cols %}
               <th class="fp-col"><input type="text" class="form-control form-control-sm" placeholder="Filtrar..." onkeyup="filtrarTabla({{ forloop.counter0 }})"></th>
@@ -69,77 +72,89 @@
           <tr>
             {% for col in columns %}
 
-              {# ===== Fechas principales con orden correcto ===== #}
               {% if col == 'Fecha Pedido' %}
                 <td class="text-nowrap" data-order="{{ row|get_item:col|date:'Y-m-d' }}">{{ row|get_item:col|date:"d/m/y" }}</td>
 
               {% elif col == 'Fecha Requerida' %}
                 <td class="text-nowrap" data-order="{{ row|get_item:col|date:'Y-m-d' }}">{{ row|get_item:col|date:"d/m/y" }}</td>
 
-                {# === FULL === #}
+                {# === FULL + OBS === #}
                 {% if perms.can_edit_full %}
                   <td hx-put="{% url 'actualizar_fecha' row|get_item:'PID' 'FULL' %}"
-                      hx-include="closest td"
-                      hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
-                      hx-trigger="change"
-                      hx-swap="none">
-                    <input type="date" name="fecha"
-                           value="{{ row|get_item:'Fecha FULL'|date:'Y-m-d' }}"
-                           class="form-control form-control-sm w-100">
+                      hx-include="closest td" hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+                      hx-trigger="change" hx-swap="none">
+                    <input type="date" name="fecha" value="{{ row|get_item:'Fecha FULL'|date:'Y-m-d' }}" class="form-control form-control-sm w-100">
+                  </td>
+                  <td>
+                    <button type="button" class="btn btn-sm btn-outline-secondary w-100"
+                            data-bs-toggle="modal" data-bs-target="#obsModal"
+                            data-pid="{{ row|get_item:'PID' }}"
+                            data-campo="OBS_FULL"
+                            data-obs="{{ row|get_item:'Obs FULL'|default_if_none:''|escape }}">
+                      {% if row|get_item:'Obs FULL' %}✎ Editar{% else %}➕ Agregar{% endif %}
+                    </button>
                   </td>
                 {% else %}
                   <td class="text-nowrap">{{ row|get_item:'Fecha FULL'|default:"—" }}</td>
+                  <td class="text-nowrap">{{ row|get_item:'Obs FULL'|default:"—" }}</td>
                 {% endif %}
 
-                {# === FLP === #}
+                {# === FLP + OBS === #}
                 {% if perms.can_edit_flp %}
                   <td hx-put="{% url 'actualizar_fecha' row|get_item:'PID' 'FLP' %}"
-                      hx-include="closest td"
-                      hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
-                      hx-trigger="change"
-                      hx-swap="none">
-                    <input type="date" name="fecha"
-                           value="{{ row|get_item:'Fecha FLP'|date:'Y-m-d' }}"
-                           class="form-control form-control-sm w-100">
+                      hx-include="closest td" hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+                      hx-trigger="change" hx-swap="none">
+                    <input type="date" name="fecha" value="{{ row|get_item:'Fecha FLP'|date:'Y-m-d' }}" class="form-control form-control-sm w-100">
+                  </td>
+                  <td>
+                    <button type="button" class="btn btn-sm btn-outline-secondary w-100"
+                            data-bs-toggle="modal" data-bs-target="#obsModal"
+                            data-pid="{{ row|get_item:'PID' }}"
+                            data-campo="OBS_FLP"
+                            data-obs="{{ row|get_item:'Obs FLP'|default_if_none:''|escape }}">
+                      {% if row|get_item:'Obs FLP' %}✎ Editar{% else %}➕ Agregar{% endif %}
+                    </button>
                   </td>
                 {% else %}
                   <td class="text-nowrap">{{ row|get_item:'Fecha FLP'|default:"—" }}</td>
+                  <td class="text-nowrap">{{ row|get_item:'Obs FLP'|default:"—" }}</td>
                 {% endif %}
 
-                {# === FIF (tu columna nueva) === #}
+                {# === FIF (sin obs) === #}
                 {% if perms.can_edit_fif %}
                   <td hx-put="{% url 'actualizar_fecha' row|get_item:'PID' 'FIF' %}"
-                      hx-include="closest td"
-                      hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
-                      hx-trigger="change"
-                      hx-swap="none">
-                    <input type="date" name="fecha"
-                           value="{{ row|get_item:'Fecha FIF'|date:'Y-m-d' }}"
-                           class="form-control form-control-sm w-100">
+                      hx-include="closest td" hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+                      hx-trigger="change" hx-swap="none">
+                    <input type="date" name="fecha" value="{{ row|get_item:'Fecha FIF'|date:'Y-m-d' }}" class="form-control form-control-sm w-100">
                   </td>
                 {% else %}
                   <td class="text-nowrap">{{ row|get_item:'Fecha FIF'|default:"—" }}</td>
                 {% endif %}
 
-                {# === FEF === #}
+                {# === FEF + OBS === #}
                 {% if perms.can_edit_fef %}
                   <td hx-put="{% url 'actualizar_fecha' row|get_item:'PID' 'FEF' %}"
-                      hx-include="closest td"
-                      hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
-                      hx-trigger="change"
-                      hx-swap="none">
-                    <input type="date" name="fecha"
-                           value="{{ row|get_item:'Fecha FEF'|date:'Y-m-d' }}"
-                           class="form-control form-control-sm w-100">
+                      hx-include="closest td" hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+                      hx-trigger="change" hx-swap="none">
+                    <input type="date" name="fecha" value="{{ row|get_item:'Fecha FEF'|date:'Y-m-d' }}" class="form-control form-control-sm w-100">
+                  </td>
+                  <td>
+                    <button type="button" class="btn btn-sm btn-outline-secondary w-100"
+                            data-bs-toggle="modal" data-bs-target="#obsModal"
+                            data-pid="{{ row|get_item:'PID' }}"
+                            data-campo="OBS_FEF"
+                            data-obs="{{ row|get_item:'Obs FEF'|default_if_none:''|escape }}">
+                      {% if row|get_item:'Obs FEF' %}✎ Editar{% else %}➕ Agregar{% endif %}
+                    </button>
                   </td>
                 {% else %}
                   <td class="text-nowrap">{{ row|get_item:'Fecha FEF'|default:"—" }}</td>
+                  <td class="text-nowrap">{{ row|get_item:'Obs FEF'|default:"—" }}</td>
                 {% endif %}
 
               {% elif col == 'Fecha Despacho' %}
                 <td class="text-nowrap" data-order="{{ row|get_item:col|date:'Y-m-d' }}">{{ row|get_item:col|date:"d/m/y" }}</td>
 
-              {# ===== Campos FP editables (tus mejoras) ===== #}
               {% elif col == 'ESTADO FP' %}
                 <td class="fp-col">
                   {% if perms.can_edit_dates %}
@@ -277,7 +292,6 @@
                   {% endif %}
                 </td>
 
-              {# ===== Resto de columnas visibles ===== #}
               {% elif col not in skip_cols and col != 'Fecha Entrega Planta' and col != 'Fecha Estimado Fin' and col != 'Fecha FULL' and col != 'Fecha FLP' and col != 'Fecha FIF' and col != 'Fecha FEF' %}
                 <td class="text-nowrap">
                   {% if 'valor' in col|slugify %}
@@ -309,49 +323,96 @@
   </div>
 </div>
 
-{# ===== Modal ===== #}
+{# ===== Modal para escribir OBS grande ===== #}
+<div class="modal fade" id="obsModal" tabindex="-1" aria-labelledby="obsModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="obsModalLabel">Observación</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+      </div>
+
+      <form id="obsForm"
+            hx-put=""
+            hx-headers='{"X-CSRFToken":"{{ csrf_token }}"}'
+            hx-swap="none">
+        <div class="modal-body">
+          <textarea name="obs" rows="6" class="form-control" placeholder="Escribe la observación..."></textarea>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
+          <button type="submit" class="btn btn-primary">Guardar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+{# ===== Modal de histórico (se deja igual) ===== #}
 <div class="modal fade" id="modalHistorial" tabindex="-1" aria-labelledby="modalHistorialLabel" aria-hidden="true">
   <div class="modal-dialog modal-dialog-scrollable">
     <div class="modal-content"></div>
   </div>
 </div>
 
-{# ===== Filtro simple por columna (versión repo) ===== #}
 <script>
 function filtrarTabla(colIndex) {
   const input = event.target;
   const filtro = input.value.toLowerCase();
-  const tabla = document.getElementById('tablaPVO');
-  const filas = tabla.getElementsByTagName('tbody')[0].getElementsByTagName('tr');
-
+  const filas = document.getElementById('tablaPVO').querySelector('tbody').rows;
   for (let i = 0; i < filas.length; i++) {
-    const celdas = filas[i].getElementsByTagName('td');
-    const celda = celdas[colIndex];
+    const celda = filas[i].cells[colIndex];
     if (celda) {
       const texto = celda.textContent || celda.innerText;
       filas[i].style.display = texto.toLowerCase().includes(filtro) ? '' : 'none';
     }
   }
 }
+
+// --- Lógica del modal de observaciones ---
+const obsModal = document.getElementById('obsModal');
+let currentObsBtn = null;
+// patrón de URL que vamos a reemplazar con PID y CAMPO
+const actualizarFechaPattern = "{% url 'actualizar_fecha' 'PID' 'CAMPO' %}";
+
+obsModal.addEventListener('show.bs.modal', (ev) => {
+  currentObsBtn = ev.relatedTarget; // el botón que abrió el modal
+  const pid   = currentObsBtn.getAttribute('data-pid');
+  const campo = currentObsBtn.getAttribute('data-campo');
+  const valor = currentObsBtn.getAttribute('data-obs') || '';
+
+  const form = document.getElementById('obsForm');
+  const url = actualizarFechaPattern.replace('PID', pid).replace('CAMPO', campo);
+  form.setAttribute('hx-put', url);
+  form.querySelector('textarea[name="obs"]').value = valor;
+
+  // título bonito
+  const nice = campo.replace('OBS_', '').toUpperCase();
+  document.getElementById('obsModalLabel').textContent = `Observación ${nice}`;
+});
+
+// al terminar la petición HTMX, actualizo el botón y cierro el modal
+document.getElementById('obsForm').addEventListener('htmx:afterRequest', function () {
+  if (currentObsBtn) {
+    const nuevo = this.querySelector('textarea[name="obs"]').value;
+    currentObsBtn.setAttribute('data-obs', nuevo);
+    currentObsBtn.textContent = nuevo ? '✎ Editar' : '➕ Agregar';
+  }
+  const modal = bootstrap.Modal.getInstance(obsModal);
+  modal.hide();
+});
 </script>
 
-{# ===== DataTables (ordenamiento) ===== #}
 <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
 <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
 <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
 <script>
-  $(document).ready(function () {
-    $('#tablaPVO').DataTable({
-      ordering: true,
-      paging: false,
-      info: false,
-      searching: false
-    });
+  $(function () {
+    $('#tablaPVO').DataTable({ ordering: true, paging: false, info: false, searching: false });
   });
 </script>
 
 <style>
-  /* Más espacio para columnas de configuración FP */
   th.fp-col, td.fp-col { min-width: 160px; }
   td.fp-col select, td.fp-col input { min-width: 150px; }
 </style>

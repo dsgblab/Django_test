@@ -45,6 +45,11 @@ class PvoRegistro(models.Model):
     fecha_fif  = models.DateField(null=True, blank=True)
     fecha_fef  = models.DateField(null=True, blank=True)
 
+    # >>> NUEVO: observaciones por fecha <<<
+    obs_full = models.TextField(null=True, blank=True)
+    obs_flp  = models.TextField(null=True, blank=True)
+    obs_fef  = models.TextField(null=True, blank=True)
+
     # Datos globales
     pt          = models.CharField(max_length=50, null=True, blank=True, db_column="PT")
     batch       = models.IntegerField(null=True, blank=True, db_column="BATCH")

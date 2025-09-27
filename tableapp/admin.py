@@ -32,6 +32,7 @@ class PvoRegistroAdmin(SimpleHistoryAdmin):
     list_display = (
         "pid",
         "fecha_full", "fecha_flp", "fecha_fif", "fecha_fef",
+        "obs_full", "obs_flp", "obs_fef",  # <<< NUEVO
         "batch", "planta", "tamano_lote", "familia", "tipo",
         "creado_por", "fecha_creacion",
     )
