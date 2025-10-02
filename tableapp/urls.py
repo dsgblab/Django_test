@@ -25,4 +25,7 @@ urlpatterns = [
 
     # <<< NUEVO: endpoint para actualizar config FP por código de producto >>>
     path('actualizar-fp/<str:codigo_producto>/<str:campo>/', views.actualizar_fp, name='actualizar_fp'),
+
+    # exportación a Excel
+    path('query-report/export/', views.query_report_export, name='query_report_export'),
 ]

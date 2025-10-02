@@ -15,6 +15,35 @@ from django_otp.plugins.otp_totp.models import TOTPDevice
 from decimal import Decimal
 from .models import TablePermission, PvoRegistro, FPConfig, FPCatalogo
 from urllib.parse import parse_qs
+from io import BytesIO
+from django.http import HttpResponse
+from io import BytesIO
+from decimal import Decimal
+from urllib.parse import parse_qs
+from datetime import datetime, date
+from django.http import HttpResponse
+from django.utils.timezone import now
+from django.utils.text import slugify
+from openpyxl import Workbook
+from openpyxl.utils import get_column_letter
+from openpyxl.styles import Font, Alignment   
+from openpyxl import Workbook
+from openpyxl.styles import Font, Alignment, PatternFill, Border, Side
+from datetime import datetime, date
+from io import BytesIO
+from io import BytesIO
+from datetime import datetime, date
+
+from django.http import HttpResponse
+from django.contrib.auth.decorators import login_required
+from django.db import connections
+
+from openpyxl import Workbook
+from openpyxl.styles import Font, Alignment, PatternFill, Border, Side
+from openpyxl.utils import get_column_letter
+
+  
+
 
 
 def check_perm(user, table, perm):
@@ -532,3 +561,287 @@ def actualizar_fp(request, codigo_producto, campo):
     except Exception as e:
         print(f'Error actualizar_fp [{codigo_producto}::{campo}]: {e}')
         return HttpResponse(f'Error: {e}', status=400)
+
+
+def _match_filters(registro: dict, filtros: dict) -> bool:
+    """Devuelve True si el dict 'registro' cumple todos los filtros 'contains'."""
+    for k, v in filtros.items():
+        if not v:
+            continue
+        val = registro.get(k, "")
+        if val is None:
+            return False
+        if isinstance(val, (int, float)):
+            val = str(val)
+        elif isinstance(val, (datetime, date)):
+            val = val.strftime("%Y-%m-%d")
+        if v.casefold() not in str(val).casefold():
+            return False
+    return True
+
+
+
+
+# ... (tus otros imports y funciones siguen igual: check_perm, etc.)
+
+@login_required
+def query_report_export(request):
+    # Permiso
+    if not check_perm(request.user, 'report', 'read'):
+        return render(request, 'tableapp/no_permission.html')
+
+    # ---- 0) ¿Exportar solo PIDs visibles? ----
+    pids_param = (request.GET.get('pids') or '').strip()
+    pids = [p.strip() for p in pids_param.split(',') if p.strip()] if pids_param else []
+
+    registros_finales = []
+
+    # ---- 1) SQL base (misma consulta) ----
+    with connections['ssf_genericos'].cursor() as cursor:
+        base_sql = """
+            SELECT
+                CONCAT(in_pedidencab.peeconsecutivo, in_pedidencab.peecompania, in_pediddetal.pedsecuencia) AS PID,
+                in_pedidencab.peeconsecutivo AS Pedido,
+                in_pedidencab.peeordecompclie AS [OC Cliente],
+                in_pedidencab.peecliente AS [Nit Cliente],
+                V_SIS_BI_clientesv2.[Razon Social],
+                in_pediddetal.pedcodiitem AS [Codigo Producto],
+                in_items.itedesclarg AS [Producto Largo],
+                in_pedidencab.peefechelab AS [Fecha Pedido],
+                in_pediddetal.pedfechrequ AS [Fecha Requerida],
+                F.[Fecha Despacho],
+                CASE
+                    WHEN in_pediddetal.eobnombre IN ('Cerrado', 'Completo') THEN 0
+                    ELSE DATEDIFF(DAY, GETDATE(), Op.[Fecha Estimado Fin])
+                END AS [Dias de Retraso],
+                CASE
+                    WHEN in_pediddetal.eobnombre = 'Cerrado' THEN 'Cerrado'
+                    WHEN in_pediddetal.eobnombre = 'Completo' THEN 'Despacho Completo'
+                    WHEN Op.[Estado Nombre] IN ('En Planeacion', 'En firme', 'Suspendido') THEN 'Compras & ABT'
+                    WHEN Op.[Estado Nombre] IN ('Por ejecutar', 'En ejecucion') THEN 'En Produccion'
+                    ELSE 'X'
+                END AS [Estado Pedido],
+                FP.familia          AS [FAMILIA],
+                FP.tipo             AS [TIPO],
+                FP.tamano_lote      AS [TAMANO_LOTE],
+                CASE 
+                  WHEN CHARINDEX('X', Prod.[Producto Largo]) > 0 THEN
+                    CAST(SUBSTRING(
+                      Prod.[Producto Largo],
+                      PATINDEX('%[0-9]%', SUBSTRING(Prod.[Producto Largo], CHARINDEX('X', Prod.[Producto Largo]) + 1, LEN(Prod.[Producto Largo])))
+                        + CHARINDEX('X', Prod.[Producto Largo]),
+                      PATINDEX('%[^0-9]%', SUBSTRING(
+                        Prod.[Producto Largo],
+                        PATINDEX('%[0-9]%', SUBSTRING(Prod.[Producto Largo], CHARINDEX('X', Prod.[Producto Largo]) + 1, LEN(Prod.[Producto Largo])))
+                          + CHARINDEX('X', Prod.[Producto Largo]),
+                        LEN(Prod.[Producto Largo])
+                      ) + 'X') - 1
+                    ) AS INT)
+                  ELSE NULL
+                END AS [GRAMAJE],
+                FP.batch            AS [BATCH],
+                FP.estado_fp        AS [ESTADO FP],
+                FP.tiempo_fp_horas  AS [TIEMPO FP],
+                FP.personal_fase    AS [PERSONAL_FASE],
+                FP.planta           AS [PLANTA],
+                in_pediddetal.pedcantpediump AS [Cantidad Pedida],
+                in_pediddetal.pedcantpediump * in_pediddetal.pedprecunit AS [Valor Pedido],
+                in_pediddetal.pedcantdespump AS [Cantidad Despachada],
+                in_pediddetal.pedcantdespump * in_pediddetal.pedprecunit AS [Valor Despacho],
+                in_pediddetal.pedcantpediump - in_pediddetal.pedcantdespump AS [Cantidad Pendiente],
+                (in_pediddetal.pedcantpediump - in_pediddetal.pedcantdespump) * in_pediddetal.pedprecunit AS [Valor Pendiente],
+                Op.Op AS OP
+            FROM ssf_genericos.dbo.in_pedidencab WITH (NOLOCK)
+            INNER JOIN ssf_genericos.dbo.in_pediddetal WITH (NOLOCK)
+                ON in_pediddetal.pedconsecutivo = in_pedidencab.peeconsecutivo
+               AND in_pediddetal.pedtipocons   = in_pedidencab.peetipocons
+               AND in_pediddetal.pedcompania   = in_pedidencab.peecompania
+            LEFT OUTER JOIN (
+                SELECT
+                    pd_ordenproceso.orpcompania AS Compania,
+                    MAX(pd_ordenproceso.orpconsecutivo) AS Op,
+                    pd_ordenproceso.orpconspedi AS Pedido,
+                    pd_ordenproceso.orpsecupedi AS [Secuencia Pedido],
+                    pd_ordenproceso.eobcodigo AS Estado,
+                    pd_ordenproceso.eobnombre AS [Estado Nombre],
+                    pd_ordenproceso.orpfechaentrega AS [Fecha Entrega Planta],
+                    pd_ordenproceso.orpfechestifin AS [Fecha Estimado Fin],
+                    SUM(pd_ordenproceso.orpcantrecibida) AS [Cantidad Recibida]
+                FROM ssf_genericos.dbo.pd_ordenproceso
+                WHERE pd_ordenproceso.eobcodigo IN ('PE', 'EP', 'EF', 'EE', 'SU')
+                  AND pd_ordenproceso.orpcompania = '01'
+                  AND CAST(pd_ordenproceso.orpcantrecibida AS NVARCHAR(15)) + pd_ordenproceso.eobnombre NOT IN ('0.00Cerrado', '0.00Finalizada')
+                GROUP BY
+                    pd_ordenproceso.orpcompania,
+                    pd_ordenproceso.orpconspedi,
+                    pd_ordenproceso.orpsecupedi,
+                    pd_ordenproceso.eobcodigo,
+                    pd_ordenproceso.eobnombre,
+                    pd_ordenproceso.orpfechaentrega,
+                    pd_ordenproceso.orpfechestifin,
+                    pd_ordenproceso.orpcantrecibida
+            ) Op
+                ON in_pediddetal.pedcompania  = Op.Compania
+               AND in_pediddetal.pedconsecutivo = Op.Pedido
+               AND in_pediddetal.pedsecuencia  = Op.[Secuencia Pedido]
+            LEFT OUTER JOIN (
+                SELECT
+                    MAX(in_movimientos.movfechmovi) AS [Fecha Despacho],
+                    in_movimientos.movconsedocuorig + in_movimientos.movcompania + in_movimientos.movcodiitem AS ID
+                FROM ssf_genericos.dbo.in_movimientos
+                WHERE in_movimientos.movtipocons IN ('DVTAN', 'DVTAX')
+                GROUP BY in_movimientos.movconsedocuorig + in_movimientos.movcompania + in_movimientos.movcodiitem
+            ) F
+                ON in_pedidencab.peeconsecutivo + in_pedidencab.peecompania + in_pediddetal.pedcodiitem = F.ID
+            LEFT OUTER JOIN django_test_db.dbo.tableapp_fpconfig AS FP WITH (NOLOCK)
+                ON FP.codigo_producto COLLATE Modern_Spanish_CI_AS = in_pediddetal.pedcodiitem
+            LEFT OUTER JOIN ssf_genericos.dbo.V_SIS_BI_Productos AS Prod
+                ON Prod.[Codigo Producto] = in_pediddetal.pedcodiitem
+               AND Prod.Estado = 'Activo'
+            INNER JOIN ssf_genericos.dbo.in_items
+                ON in_pediddetal.pedcodiitem  = in_items.itecodigo
+               AND in_pediddetal.pedcompania  = in_items.itecompania
+            INNER JOIN ssf_genericos.dbo.V_SIS_BI_clientesv2
+                ON V_SIS_BI_clientesv2.[Nit Cliente] = in_pedidencab.peecliente
+               AND V_SIS_BI_clientesv2.Compañia     = in_pedidencab.peecompania
+            LEFT OUTER JOIN django_test_db.dbo.tableapp_pvoregistro
+                ON CONCAT(in_pedidencab.peeconsecutivo, in_pedidencab.peecompania, in_pediddetal.pedsecuencia)
+                   = tableapp_pvoregistro.pid COLLATE Latin1_General_CI_AS
+            WHERE
+                YEAR(in_pedidencab.peefechelab) >= YEAR(GETDATE()) - 1
+                AND in_pedidencab.peecompania = '01'
+                AND in_pediddetal.eobnombre NOT IN ('Cerrado', 'Completo')
+                AND in_pedidencab.peetipocons <> 'PECOP'
+                AND in_pediddetal.pedcodiitem NOT LIKE '%SER%'
+                AND (
+                    in_pediddetal.pedrazoncierre IS NULL
+                    OR in_pediddetal.pedrazoncierre IN ('07-PEDIDO COMPLETO', '08-PRODUCTO AVERIADO', '03- FACTURADO', '')
+                )
+        """
+
+        # ---- 1.1) Filtro por PIDs sin usar parámetros (evita choque con % del SQL) ----
+        if pids:
+            seguros = [("'" + p.replace("'", "''") + "'") for p in pids]
+            in_clause = ",".join(seguros)
+            base_sql += f"""
+                AND CONCAT(in_pedidencab.peeconsecutivo, in_pedidencab.peecompania, in_pediddetal.pedsecuencia) IN ({in_clause})
+            """
+
+        base_sql += " ORDER BY [Fecha Requerida]"
+
+        # Ejecutamos SIN params para no disparar el formateo debug con %.
+        cursor.execute(base_sql)
+        rows = cursor.fetchall()
+        columns = [c[0] for c in cursor.description]
+
+    # ---- 2) Fechas/obs locales ----
+    with connections['default'].cursor() as c2:
+        c2.execute("""
+            SELECT pid, fecha_full, fecha_flp, fecha_fif, fecha_fef,
+                   obs_full, obs_flp, obs_fef, creado_por_id, fecha_creacion
+            FROM tableapp_pvoregistro
+        """)
+        fechas = c2.fetchall()
+
+    fechas_dict = {
+        r[0]: {
+            'FULL': r[1], 'FLP': r[2], 'FIF': r[3], 'FEF': r[4],
+            'OBS_FULL': r[5], 'OBS_FLP': r[6], 'OBS_FEF': r[7],
+            'ACTUALIZADO_POR': r[8], 'ACTUALIZADO_EN': r[9],
+        } for r in fechas
+    }
+
+    registros_finales = []
+    for r in rows:
+        d = dict(zip(columns, r))
+        pid = str(d['PID']).strip()
+        extra = fechas_dict.get(pid, {})
+        d['Fecha FULL'] = extra.get('FULL') or d.get('Fecha FULL')
+        d['Fecha FLP']  = extra.get('FLP')  or d.get('Fecha FLP')
+        d['Fecha FIF']  = extra.get('FIF')  or d.get('Fecha FIF')
+        d['Fecha FEF']  = extra.get('FEF')  or d.get('Fecha FEF')
+        d['Obs FULL']   = extra.get('OBS_FULL')
+        d['Obs FLP']    = extra.get('OBS_FLP')
+        d['Obs FEF']    = extra.get('OBS_FEF')
+        d['Actualizado por'] = extra.get('ACTUALIZADO_POR')
+        d['Última Fecha']    = extra.get('ACTUALIZADO_EN')
+        registros_finales.append(d)
+
+    # ---- 3) Excel con estilos ----
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Reporte PVO"
+
+    columnas_export = columns + [
+        'Fecha FULL', 'Obs FULL',
+        'Fecha FLP', 'Obs FLP',
+        'Fecha FIF',
+        'Fecha FEF', 'Obs FEF',
+        'Actualizado por', 'Última Fecha'
+    ]
+
+    # Encabezados
+    ws.append(columnas_export)
+    header_fill = PatternFill("solid", fgColor="1e293b")
+    header_font = Font(bold=True, color="FFFFFF")
+    center = Alignment(horizontal="center", vertical="center", wrap_text=True)
+    thin = Side(style="thin", color="CCCCCC")
+    border_all = Border(left=thin, right=thin, top=thin, bottom=thin)
+
+    for c in range(1, len(columnas_export) + 1):
+        cell = ws.cell(row=1, column=c)
+        cell.fill = header_fill
+        cell.font = header_font
+        cell.alignment = center
+        cell.border = border_all
+
+    # Datos
+    for item in registros_finales:
+        ws.append([item.get(col) for col in columnas_export])
+
+    # Formato fechas
+    nombres_fecha = {'Fecha Pedido','Fecha Requerida','Fecha Despacho',
+                     'Fecha FULL','Fecha FLP','Fecha FIF','Fecha FEF','Última Fecha'}
+    idx_fechas = [i+1 for i, c in enumerate(columnas_export) if c in nombres_fecha]
+
+    for r in range(2, ws.max_row + 1):
+        # zebra
+        if r % 2 == 0:
+            for c in range(1, len(columnas_export)+1):
+                ws.cell(row=r, column=c).fill = PatternFill("solid", fgColor="F7FAFC")
+        # borders + wrap para texto largo
+        for c in range(1, len(columnas_export)+1):
+            cell = ws.cell(row=r, column=c)
+            cell.border = border_all
+            if columnas_export[c-1] in ('Producto Largo','Razon Social','Obs FULL','Obs FLP','Obs FEF'):
+                cell.alignment = Alignment(vertical="top", wrap_text=True)
+        # fechas
+        for c in idx_fechas:
+            cell = ws.cell(row=r, column=c)
+            if isinstance(cell.value, (datetime, date)) or (isinstance(cell.value, str) and cell.value.count('-') == 2):
+                cell.number_format = "DD/MM/YYYY"
+                cell.alignment = center
+
+    # Anchos automáticos (tope 45)
+    for i, name in enumerate(columnas_export, start=1):
+        max_len = max(
+            len(str(name)),
+            *[len(str(ws.cell(row=r, column=i).value or "")) for r in range(2, ws.max_row+1)]
+        )
+        ws.column_dimensions[get_column_letter(i)].width = min(max_len + 2, 45)
+
+    # Congelar encabezado y AutoFilter
+    ws.freeze_panes = "A2"
+    ws.auto_filter.ref = ws.dimensions
+
+    # Descargar
+    output = BytesIO()
+    wb.save(output)
+    output.seek(0)
+
+    filename = f"Reporte_PVO_{datetime.now().strftime('%Y%m%d_%H%M')}.xlsx"
+    return HttpResponse(
+        output.getvalue(),
+        content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'}
+    )
